@@ -1,16 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as React from "react";
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ViewStyle,
-  TextStyle,
-  Animated,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TextStyle,
+    TouchableOpacity,
+    View,
+    ViewStyle
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -218,19 +217,12 @@ const styles = StyleSheet.create({
     right: 16,
     top: 16,
     padding: 4,
-    borderRadius: 4,
+    borderRadius: 2,
     backgroundColor: "#f3f4f6",
   },
 });
 
 export {
-  Sheet,
-  SheetTrigger,
-  SheetOverlay,
-  SheetContent,
-  SheetHeader,
-  SheetFooter,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
+    Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetOverlay, SheetTitle, SheetTrigger
 };
+

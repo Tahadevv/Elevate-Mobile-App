@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   dropdownContent: {
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     maxHeight: 200,
     shadowOffset: { width: 0, height: 4 },
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: 2,
   },
   itemSelected: {
     // backgroundColor handled dynamically

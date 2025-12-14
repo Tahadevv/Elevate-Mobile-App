@@ -1,22 +1,49 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Dimensions,
-  SafeAreaView,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import API_CONFIG from '../config.api';
+import { DotLoader } from '../components/ui/dot-loader';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchCourseDetails } from '../store/slices/courseDetailsSlice';
 
 const { width } = Dimensions.get('window');
 
 export default function CourseDetailsPage() {
   const [activeTab, setActiveTab] = useState<'about' | 'announcement'>('about');
-  const [expandedChapter, setExpandedChapter] = useState<number | null>(3);
-
+  const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
+  
+  const { courseName, courseId } = useLocalSearchParams<{ 
+    courseName: string;
+    courseId: string;
+  }>();
+  
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  
+  // Get course details from Redux
+  const { courseDetails, isLoading, error } = useAppSelector((state: any) => state.courseDetails);
+  const { token } = useAppSelector((state: any) => state.auth);
+  
+  // Fetch course details when component mounts
+  useEffect(() => {
+    if (courseId) {
+      console.log('🚀 Fetching course details for ID:', courseId);
+      const authToken = token || API_CONFIG.FIXED_TOKEN;
+      dispatch(fetchCourseDetails({ courseId, token: authToken }) as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId]);
+  
   const toggleChapter = (index: number) => {
     if (expandedChapter === index) {
       setExpandedChapter(null);
@@ -25,21 +52,66 @@ export default function CourseDetailsPage() {
     }
   };
 
+  const handleBackPress = () => {
+    router.back();
+  };
+
+  // Use API data or fallback
+  const displayCourseName = courseDetails?.name || courseName || 'Course';
+  const aboutPrimary = courseDetails?.about_primary || '';
+  const aboutSecondary = courseDetails?.about_secondary || '';
+  const totalQuestions = courseDetails?.total_questions || 0;
+  const totalChapters = courseDetails?.total_chapters || 0;
+  const chapters = courseDetails?.chapters || [];
+  const announcements = courseDetails?.announcements || [];
+
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <DotLoader size="large" color="#185abd" text="Loading course details..." />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleBackPress}>
+            <Text style={styles.retryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
+          {/* Back Button */}
+          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
+
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Explore the Gemini API</Text>
+            <Text style={styles.title}>{displayCourseName}</Text>
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Ionicons name="time-outline" size={16} color="#666" />
-                <Text style={styles.statText}>Total 20 questions</Text>
+                <Text style={styles.statText}>Total {totalQuestions} questions</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="document-text-outline" size={16} color="#666" />
-                <Text style={styles.statText}>7 Chapters</Text>
+                <Text style={styles.statText}>{totalChapters} Chapters</Text>
               </View>
             </View>
           </View>
@@ -94,52 +166,47 @@ export default function CourseDetailsPage() {
             {activeTab === 'about' && (
               <View style={styles.tabContent}>
                 <Text style={styles.tabTitle}>About the Course</Text>
-                <Text style={styles.description}>
-                  Colab notebooks allow you to combine executable code and rich text in a single document, along with
-                  images, HTML, LaTeX and more. When you create your own Colab notebooks, they are stored in your Google
-                  Drive account. You can easily share your Colab notebooks with co-workers or friends, allowing them to
-                  comment on your notebooks or even edit them.
-                </Text>
-                <Text style={styles.description}>
-                  Colab notebooks allow you to combine executable code and rich text in a single document, along with
-                  images, HTML, LaTeX and more. When you create your own Colab notebooks, they are stored in your Google
-                  Drive account.
-                </Text>
-
-                <Text style={styles.learningTitle}>What will you learn here</Text>
-                <View style={styles.learningList}>
-                  {[
-                    'Go to Google AI Studio and try working with your Google account.',
-                    'Go to Google AI Studio and try working with your Google account.',
-                    'Go to Google AI Studio and try working with your Google account.',
-                    'Go to Google AI Studio and try working with the code and tools.',
-                  ].map((item, index) => (
-                    <View key={index} style={styles.learningItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#166534" />
-                      <Text style={styles.learningItemText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
+                {aboutPrimary && (
+                  <Text style={styles.description}>
+                    {aboutPrimary}
+                  </Text>
+                )}
+                {aboutSecondary && (
+                  <Text style={styles.description}>
+                    {aboutSecondary}
+                  </Text>
+                )}
+                {!aboutPrimary && !aboutSecondary && (
+                  <Text style={styles.description}>
+                    Explore this comprehensive course designed to enhance your skills and knowledge in this field.
+                  </Text>
+                )}
               </View>
             )}
 
             {activeTab === 'announcement' && (
               <View style={styles.tabContent}>
                 <Text style={styles.tabTitle}>Announcement</Text>
-                <View style={styles.announcementList}>
-                  {[1, 2, 3].map((item, index) => (
-                    <View key={index} style={styles.announcementItem}>
-                      <View style={styles.announcementHeader}>
-                        <Ionicons name="megaphone-outline" size={20} color="#333" />
-                        <Text style={styles.announcementTitle}>Do you know ?</Text>
+                {announcements.length > 0 ? (
+                  <View style={styles.announcementList}>
+                    {announcements.map((announcement: any, index: number) => (
+                      <View key={index} style={styles.announcementItem}>
+                        <View style={styles.announcementHeader}>
+                          <Ionicons name="megaphone-outline" size={20} color="#333" />
+                          <Text style={styles.announcementTitle}>{announcement.title || 'Announcement'}</Text>
+                        </View>
+                        <Text style={styles.announcementText}>
+                          {announcement.content || announcement.message}
+                        </Text>
                       </View>
-                      <Text style={styles.announcementText}>
-                        Colab notebooks with co-workers or friends, allowing them to comment on your notebooks or even
-                        edit them.
-                      </Text>
-                    </View>
-                  ))}
-                </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyAnnouncementContainer}>
+                    <Ionicons name="information-circle-outline" size={40} color="#999" />
+                    <Text style={styles.emptyAnnouncementText}>No announcements yet</Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -149,36 +216,41 @@ export default function CourseDetailsPage() {
         <View style={styles.sidebar}>
           <View style={styles.sidebarContent}>
             <Text style={styles.sidebarTitle}>Course Content & Chapters</Text>
-            <View style={styles.chaptersList}>
-              {[1, 2, 3, 4, 5, 6, 7].map((chapter, index) => (
-                <View key={index} style={styles.chapterItem}>
-                  <TouchableOpacity
-                    style={styles.chapterButton}
-                    onPress={() => toggleChapter(index)}
-                  >
-                    <Text style={styles.chapterTitle}>
-                      {index < 3
-                        ? '01 Intro'
-                        : index === 3
-                        ? '04 Introduction to gemini'
-                        : '01 Introduction'}
-                    </Text>
-                    <Ionicons
-                      name={expandedChapter === index ? 'chevron-up' : 'chevron-down'}
-                      size={16}
-                      color="#666"
-                    />
-                  </TouchableOpacity>
-                  {expandedChapter === index && (
-                    <View style={styles.chapterContent}>
-                      <Text style={styles.chapterSubItem}>01 Introduction</Text>
-                      <Text style={styles.chapterSubItem}>02 Introduction</Text>
-                      <Text style={styles.chapterSubItem}>03 Introduction</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
+            {chapters.length > 0 ? (
+              <View style={styles.chaptersList}>
+                {chapters.map((chapter: any, index: number) => (
+                  <View key={chapter.id} style={styles.chapterItem}>
+                    <TouchableOpacity
+                      style={styles.chapterButton}
+                      onPress={() => toggleChapter(index)}
+                    >
+                      <Text style={styles.chapterTitle}>
+                        {`${String(index + 1).padStart(2, '0')} ${chapter.name}`}
+                      </Text>
+                      <Ionicons
+                        name={expandedChapter === index ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color="#666"
+                      />
+                    </TouchableOpacity>
+                    {expandedChapter === index && chapter.subtopics && chapter.subtopics.length > 0 && (
+                      <View style={styles.chapterContent}>
+                        {chapter.subtopics.map((subtopic: any, subIndex: number) => (
+                          <Text key={subtopic.id} style={styles.chapterSubItem}>
+                            {`${String(subIndex + 1).padStart(2, '0')} ${subtopic.name}`}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyChaptersContainer}>
+                <Ionicons name="document-outline" size={40} color="#999" />
+                <Text style={styles.emptyChaptersText}>No chapters available</Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -246,17 +318,17 @@ const styles = StyleSheet.create({
   tabButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 2,
     marginRight: 8,
     backgroundColor: '#f0f0ff',
   },
   activeTabButton: {
-    backgroundColor: '#ffd404',
+            backgroundColor: '#185abd',
   },
   tabButtonText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#ffd404',
+            color: '#185abd',
   },
   activeTabButtonText: {
     color: '#fff',
@@ -264,7 +336,7 @@ const styles = StyleSheet.create({
   tabContent: {
     borderWidth: 2,
     padding: 24,
-    borderRadius: 6,
+    borderRadius: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -352,7 +424,7 @@ const styles = StyleSheet.create({
   chapterItem: {
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    borderRadius: 6,
+    borderRadius: 2,
     overflow: 'hidden',
   },
   chapterButton: {
@@ -378,5 +450,80 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#475569',
     marginBottom: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 2,
+    backgroundColor: '#f0f0f0',
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#dc2626',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#185abd',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  emptyAnnouncementContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyAnnouncementText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 12,
+  },
+  emptyChaptersContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyChaptersText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 12,
   },
 });

@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     backgroundColor: "white",
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     padding: 12,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   tooltipIndicator: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: 2,
     marginRight: 8,
   },
   tooltipName: {
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   legendIcon: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: 2,
   },
   legendLabel: {
     fontSize: 12,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: 20,
-    borderRadius: 4,
+    borderRadius: 2,
     marginBottom: 8,
   },
   barLabel: {
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 2,
   },
 });
 

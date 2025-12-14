@@ -40,7 +40,7 @@ export default function Qouatation() {
 
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <Ionicons key={star} name="star" size={20} color="#ffd404" />
+                  <Ionicons key={star} name="star" size={20} color="#185abd" />
                 ))}
               </View>
 
@@ -61,9 +61,9 @@ export default function Qouatation() {
 
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4].map((star) => (
-                  <Ionicons key={star} name="star" size={20} color="#ffd404" />
+                  <Ionicons key={star} name="star" size={20} color="#185abd" />
                 ))}
-                <Ionicons name="star-outline" size={20} color="#ffd404" />
+                <Ionicons name="star-outline" size={20} color="#185abd" />
               </View>
 
               <View style={styles.testimonialAuthor}>

@@ -1,9 +1,10 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import SplashScreen from './SplashScreen';
+import { StyleSheet, View } from 'react-native';
 import OnboardingScreen1 from './OnboardingScreen1';
 import OnboardingScreen2 from './OnboardingScreen2';
 import OnboardingScreen3 from './OnboardingScreen3';
+import SplashScreen from './SplashScreen';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -11,6 +12,7 @@ interface OnboardingFlowProps {
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [currentScreen, setCurrentScreen] = useState<'splash' | 'screen1' | 'screen2' | 'screen3'>('splash');
+  const router = useRouter();
 
   const handleSplashComplete = () => {
     setCurrentScreen('screen1');
@@ -33,7 +35,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const handleGetStarted = () => {
-    onComplete();
+    // Navigate directly to dashboard instead of calling onComplete
+    router.push('/dashboard' as any);
   };
 
   const renderCurrentScreen = () => {

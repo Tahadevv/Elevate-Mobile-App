@@ -78,7 +78,7 @@ AlertDescription.displayName = "AlertDescription";
 const styles = StyleSheet.create({
   alert: {
     width: "100%",
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     padding: 16,
     paddingVertical: 12,

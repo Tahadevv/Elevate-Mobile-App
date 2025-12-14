@@ -1,13 +1,12 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { ReactNode } from "react";
 import {
-  Modal as RNModal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
+    Dimensions,
+    Modal as RNModal,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -56,7 +55,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     margin: 16,
     padding: 24,
-    borderRadius: 8,
+    borderRadius: 2,
     width: screenWidth - 32,
     maxWidth: 400,
     shadowColor: "#000",
@@ -70,7 +69,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     padding: 4,
-    borderRadius: 20,
+    borderRadius: 2,
     backgroundColor: "#f3f4f6",
   },
 });

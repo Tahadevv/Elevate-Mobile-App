@@ -1,15 +1,16 @@
+import { useRouter } from "expo-router";
 import {
-    Bell,
-    BookOpen,
-    HelpCircle,
-    LogOut,
-    Megaphone,
-    Menu,
-    Settings,
-    X
+  Bell,
+  BookOpen,
+  HelpCircle,
+  LogOut,
+  Megaphone,
+  Settings,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Logo from '../../assets/images/logo.svg';
 import { NotificationModal } from "../shared/notification-modal";
 import { useTheme } from "../theme-provider";
 import { ThemeToggle } from "../theme-toggle";
@@ -19,6 +20,7 @@ interface SidebarProps {
   onStateChange?: (isOpen: boolean) => void;
   currentPage?: string; // Add current page prop
   onNavigate?: (tabName: string) => void; // Add navigation callback
+  isOpen?: boolean; // Controlled state from parent
 }
 
 type MenuItem = {
@@ -34,26 +36,30 @@ type MenuCategory = {
   items: MenuItem[];
 };
 
-export default function Sidebar({ style, onStateChange, currentPage = 'courses', onNavigate }: SidebarProps) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+export default function Sidebar({ style, onStateChange, currentPage = 'courses', onNavigate, isOpen: controlledIsOpen }: SidebarProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(true);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const { colors, isDark } = useTheme();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const styles = createStyles(colors);
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
 
-  // Use the prop instead of hardcoded value
-  // const currentPage = 'courses'; // This should come from your navigation state
+  const styles = createStyles(colors, insets);
 
   useEffect(() => {
     const checkScreenSize = () => {
       const { width } = Dimensions.get('window');
-      setIsMobile(width < 768);
       if (width < 768) {
-        setIsOpen(false);
+        if (controlledIsOpen === undefined) {
+          setInternalIsOpen(false);
+        }
       } else {
-        setIsOpen(true);
+        if (controlledIsOpen === undefined) {
+          setInternalIsOpen(true);
+        }
       }
     };
 
@@ -65,43 +71,70 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
 
     // Cleanup
     return () => subscription?.remove();
-  }, []);
+  }, [controlledIsOpen]);
 
-  // Notify parent component when sidebar state changes
+  // Update internal state when controlled state changes
   useEffect(() => {
-    onStateChange?.(isOpen);
-  }, [isOpen, onStateChange]);
+    if (controlledIsOpen !== undefined) {
+      setInternalIsOpen(controlledIsOpen);
+    }
+  }, [controlledIsOpen]);
 
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
+  // Notify parent component when sidebar state changes (only if not controlled)
+  useEffect(() => {
+    if (controlledIsOpen === undefined) {
+      onStateChange?.(internalIsOpen);
+    }
+  }, [internalIsOpen, onStateChange, controlledIsOpen]);
 
   const handleMenuItemClick = (label: string) => {
+    console.log('Menu item clicked:', label); // Debug log
+    
     if (label === "Notifications") {
       setNotificationOpen(true);
     } else if (label === "Logout") {
       setLogoutOpen(true);
-    } else if (onNavigate) {
-      // Map menu labels to tab names
+    } else {
+      // Map menu labels to routes and navigate
+      let route = '';
       let tabName = '';
+      
       switch (label) {
         case "My Courses":
+          route = '/dashboard';
           tabName = 'courses';
           break;
         case "Announcements":
+          route = '/dashboard/announcements';
           tabName = 'announcements';
           break;
         case "Help Center":
+          route = '/dashboard/help';
           tabName = 'help';
           break;
         case "Settings":
+          route = '/dashboard/account';
           tabName = 'settings';
           break;
         default:
           return;
       }
-      onNavigate(tabName);
-      setIsOpen(false); // Close sidebar after navigation
+      
+      console.log('Navigating to:', route, 'with tab:', tabName); // Debug log
+      
+      // Force sidebar to close immediately
+      if (controlledIsOpen === undefined) {
+        setInternalIsOpen(false);
+      }
+      onStateChange?.(false);
+      
+      // Navigate to the route
+      router.push(route as any);
+      
+      // Notify parent component about tab change if needed
+      if (onNavigate) {
+        onNavigate(tabName);
+      }
     }
   };
 
@@ -109,26 +142,26 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
     {
       title: "LEARNING",
       items: [
-        { icon: BookOpen, label: "My Courses", link: "/dashboard", iconColor: colors.primary }
+        { icon: BookOpen, label: "My Courses", link: "/dashboard", iconColor: "#3b82f6" } // text-blue-500
       ]
     },
     {
       title: "COMMUNICATION",
       items: [
-        { icon: Megaphone, label: "Announcements", link: "/dashboard/announcements", iconColor: colors.destructive },
-        { icon: Bell, label: "Notifications", iconColor: colors.accent }
+        { icon: Megaphone, label: "Announcements", link: "/dashboard/announcements", iconColor: "#ef4444" }, // text-red-500
+        { icon: Bell, label: "Notifications", iconColor: "#10b981" } // text-green-500
       ]
     },
     {
       title: "SUPPORT",
       items: [
-        { icon: HelpCircle, label: "Help Center", link: "/dashboard/help", iconColor: colors.accent }
+        { icon: HelpCircle, label: "Help Center", link: "/dashboard/help", iconColor: "#8b5cf6" } // text-purple-500
       ]
     },
     {
       title: "ACCOUNT",
       items: [
-        { icon: Settings, label: "Settings", link: "/dashboard/account", iconColor: colors.accent },
+        { icon: Settings, label: "Settings", link: "/dashboard/account", iconColor: "#6b7280" }, // text-gray-500
         { component: ThemeToggle, label: "Theme" }
       ]
     }
@@ -136,20 +169,11 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
 
   const logoutItem = { icon: LogOut, label: "Logout" };
 
+  const windowWidth = Dimensions.get('window').width;
+  const isMobile = windowWidth < 768;
+
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <TouchableOpacity
-        style={[styles.mobileToggle, isMobile ? {} : { display: 'none' }]}
-        onPress={toggleSidebar}
-      >
-        {isOpen ? (
-          <X size={24} color={colors.foreground} />
-        ) : (
-          <Menu size={24} color={colors.foreground} />
-        )}
-      </TouchableOpacity>
-
       {/* Sidebar */}
       <View
         style={[
@@ -157,132 +181,151 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
           isOpen ? styles.sidebarOpen : styles.sidebarClosed,
           style,
         ]}
+        pointerEvents={isMobile && !isOpen ? 'none' : 'auto'}
       >
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Image
-            source={isDark ? require('../../assets/images/logo-white.png') : require('../../public/logo.svg')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
+        <ScrollView 
+          style={styles.sidebarScrollView} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.sidebarContent}
+        >
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            {isDark ? (
+              <Image
+                source={require('../../assets/images/logo-white.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            ) : (
+              <Logo 
+                width={200} 
+                height={60} 
+                style={styles.logo}
+              />
+            )}
+          </View>
 
-        {/* Navigation */}
-        <ScrollView style={styles.navigation} showsVerticalScrollIndicator={false}>
-          {menuCategories.map((category, categoryIndex) => (
-            <View key={categoryIndex} style={styles.category}>
-              <Text style={[styles.categoryTitle, { color: colors.foreground }]}>
-                {category.title}
-              </Text>
-              <View style={styles.menuItems}>
-                {category.items.map((item, itemIndex) => {
-                  const isActive = (item.label === "My Courses" && currentPage === 'courses') || 
-                                  (item.label === "Announcements" && currentPage === 'announcements') ||
-                                  (item.label === "Help Center" && currentPage === 'help') ||
-                                  (item.label === "Settings" && currentPage === 'settings');
-                  
-                  return (
-                    <View key={itemIndex}>
-                      {item.component ? (
-                        // If item has a component -> render the component
-                        <View style={[
-                          styles.menuItem,
-                          isActive && styles.activeMenuItem
-                        ]}>
-                          <item.component />
-                          <Text style={[
-                            styles.menuItemText, 
-                            { color: isActive ? colors.yellow : colors.foreground }
-                          ]}>
-                            {item.label}
-                          </Text>
-                        </View>
-                      ) : item.link ? (
-                        // If item has link -> normal link
-                        <TouchableOpacity 
-                          style={[
+          {/* Navigation */}
+          <View style={styles.navigation}>
+            {menuCategories.map((category, categoryIndex) => (
+              <View key={categoryIndex} style={styles.category}>
+                <Text style={[styles.categoryTitle, { color: colors.foreground }]}>
+                  {category.title}
+                </Text>
+                <View style={styles.menuItems}>
+                  {category.items.map((item, itemIndex) => {
+                    const isActive = (item.label === "My Courses" && currentPage === 'courses') || 
+                                    (item.label === "Announcements" && currentPage === 'announcements') ||
+                                    (item.label === "Help Center" && currentPage === 'help') ||
+                                    (item.label === "Settings" && currentPage === 'settings');
+                    
+                    return (
+                      <View key={itemIndex}>
+                        {item.component ? (
+                          // If item has a component -> render the component
+                          <View style={[
                             styles.menuItem,
                             isActive && styles.activeMenuItem
-                          ]}
-                          onPress={() => handleMenuItemClick(item.label)}
-                        >
-                          {item.icon && (
-                            <item.icon 
-                              size={16} 
-                              color={isActive ? colors.yellow : (item.iconColor || colors.foreground)} 
-                              style={styles.menuIcon} 
-                            />
-                          )}
-                          <Text style={[
-                            styles.menuItemText, 
-                            { color: isActive ? colors.yellow : colors.foreground }
                           ]}>
-                            {item.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        // If item has NO link -> behave like a button
-                        <TouchableOpacity
-                          style={[
-                            styles.menuItem,
-                            isActive && styles.activeMenuItem
-                          ]}
-                          onPress={() => handleMenuItemClick(item.label)}
-                        >
-                          {item.icon && (
-                            <item.icon 
-                              size={16} 
-                              color={isActive ? colors.yellow : (item.iconColor || colors.foreground)} 
-                              style={styles.menuIcon} 
-                            />
-                          )}
-                          <Text style={[
-                            styles.menuItemText, 
-                            { color: isActive ? colors.yellow : colors.foreground }
-                          ]}>
-                            {item.label}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  );
-                })}
+                            <item.component />
+                            <Text style={[
+                              styles.menuItemText, 
+                              { color: isActive ? colors.yellow : colors.foreground }
+                            ]}>
+                              {item.label}
+                            </Text>
+                          </View>
+                        ) : item.link ? (
+                          // If item has link -> normal link
+                          <TouchableOpacity 
+                            style={[
+                              styles.menuItem,
+                              isActive && styles.activeMenuItem
+                            ]}
+                            onPress={() => handleMenuItemClick(item.label)}
+                          >
+                            {item.icon && (
+                              <item.icon 
+                                size={16} 
+                                color={isActive ? colors.yellow : (item.iconColor || colors.foreground)} 
+                                style={styles.menuIcon} 
+                              />
+                            )}
+                            <Text style={[
+                              styles.menuItemText, 
+                              { color: isActive ? colors.yellow : colors.foreground }
+                            ]}>
+                              {item.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          // If item has NO link -> behave like a button
+                          <TouchableOpacity
+                            style={[
+                              styles.menuItem,
+                              isActive && styles.activeMenuItem
+                            ]}
+                            onPress={() => handleMenuItemClick(item.label)}
+                          >
+                            {item.icon && (
+                              <item.icon 
+                                size={16} 
+                                color={isActive ? colors.yellow : (item.iconColor || colors.foreground)} 
+                                style={styles.menuIcon} 
+                              />
+                            )}
+                            <Text style={[
+                              styles.menuItemText, 
+                              { color: isActive ? colors.yellow : colors.foreground }
+                            ]}>
+                              {item.label}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            ))}
+          </View>
 
-        {/* Upgrade Card */}
-        <View style={styles.upgradeCardContainer}>
-          <View style={styles.upgradeCard}>
-            <Text style={styles.upgradeTitle}>Access to all Domains</Text>
-            <Text style={styles.upgradeSubtitle}>
-              Elevate Exam is Ready{'\n'}to help You Grow.
-            </Text>
-            <TouchableOpacity style={styles.upgradeButton}>
-              <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+          {/* Upgrade Card */}
+          <View style={styles.upgradeCardContainer}>
+            <View style={[styles.upgradeCard, { backgroundColor: colors.secondary }]}>
+              <Text style={[styles.upgradeTitle, { color: colors.yellow }]}>Access to all Domains</Text>
+              <Text style={[styles.upgradeSubtitle, { color: colors.foreground }]}>
+                Elevate Exam is Ready{'\n'}to help You Grow.
+              </Text>
+              <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.yellow }]}>
+                <Text style={[styles.upgradeButtonText, { color: colors.background }]}>Upgrade Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Logout Section */}
+          <View style={[styles.logoutSection, { borderTopColor: colors.border }]}>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={() => handleMenuItemClick(logoutItem.label)}
+            >
+              <logoutItem.icon size={20} color={colors.foreground} style={styles.logoutIcon} />
+              <Text style={[styles.logoutText, { color: colors.foreground }]}>{logoutItem.label}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Logout Section */}
-        <View style={[styles.logoutSection, { borderTopColor: colors.border }]}>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={() => handleMenuItemClick(logoutItem.label)}
-          >
-            <logoutItem.icon size={20} color={colors.foreground} style={styles.logoutIcon} />
-            <Text style={[styles.logoutText, { color: colors.foreground }]}>{logoutItem.label}</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
 
-      {/* Overlay for mobile */}
-      {isMobile && isOpen && (
+      {/* Overlay - Only show on mobile when sidebar is open */}
+      {isOpen && isMobile && (
         <TouchableOpacity
           style={styles.overlay}
-          onPress={toggleSidebar}
+          onPress={() => {
+            // Always notify parent to close, parent will handle the state
+            onStateChange?.(false);
+          }}
           activeOpacity={1}
+          pointerEvents="auto"
         />
       )}
 
@@ -321,25 +364,26 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
-  mobileToggle: {
-    position: 'absolute',
-    top: 17,
-    left: 16,
-    zIndex: 50,
-    backgroundColor: 'transparent',
-    padding: 8,
-  },
+const createStyles = (colors: any, insets: any) => StyleSheet.create({
   sidebar: {
     position: 'absolute',
     top: 0,
     left: 0,
     bottom: 0,
-    zIndex: 40,
+    zIndex: 1000,
     width: 256,
     backgroundColor: colors.background,
     borderRightWidth: 1,
     borderRightColor: colors.border,
+    paddingTop: insets.top,
+    elevation: 5,
+  },
+  sidebarScrollView: {
+    flex: 1,
+  },
+  sidebarContent: {
+    flexGrow: 1,
+    paddingBottom: 32 + insets.bottom, // Account for semi bottom bar height
   },
   sidebarOpen: {
     transform: [{ translateX: 0 }],
@@ -355,13 +399,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 16,
   },
   logo: {
+    alignSelf: 'center',
     width: 200,
-    height: 150,
+    height: 60,
   },
   navigation: {
-    flex: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
+    paddingBottom: 16,
   },
   category: {
     marginBottom: 8,
@@ -382,12 +427,10 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 2,
   },
   activeMenuItem: {
-    backgroundColor: colors.yellow + '1A', // 10% opacity yellow background
-    borderLeftWidth: 3,
-    borderLeftColor: colors.yellow,
+    color: colors.yellow,
     paddingLeft: 5, // Adjust padding to account for border
   },
   menuIcon: {
@@ -403,23 +446,22 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
   },
   upgradeCard: {
-    backgroundColor: colors.secondary,
     width: 180,
     height: 150,
     paddingVertical: 20,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   upgradeTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: colors.yellow,
     textAlign: 'center',
     marginBottom: 16,
   },
   upgradeSubtitle: {
-    color: colors.foreground,
     fontWeight: '600',
     fontSize: 14,
     textAlign: 'center',
@@ -427,13 +469,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     lineHeight: 18,
   },
   upgradeButton: {
-    backgroundColor: colors.yellow,
     paddingHorizontal: 24,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 6,
   },
   upgradeButtonText: {
-    color: colors.background,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -447,7 +487,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    borderRadius: 2,
   },
   logoutIcon: {
     marginRight: 12,
@@ -462,7 +502,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 30,
+    zIndex: 999,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -473,14 +513,14 @@ const createStyles = (colors: any) => StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 30,
+    zIndex: 1002,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderRadius: 2,
     padding: 24,
     width: '90%',
     maxWidth: 425,
@@ -507,7 +547,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   cancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
   },
   cancelButtonText: {
@@ -517,7 +557,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   logoutConfirmButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 2,
     backgroundColor: colors.destructive,
   },
   logoutConfirmButtonText: {

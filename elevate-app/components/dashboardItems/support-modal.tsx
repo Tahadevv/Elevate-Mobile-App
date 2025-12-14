@@ -1,19 +1,24 @@
-import { Ionicons } from "@expo/vector-icons";
-import React, { createContext, useContext, useState } from "react";
+import { MessageSquare, X } from 'lucide-react-native';
+import React, { createContext, useContext, useState } from 'react';
 import {
-    Dimensions,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useColors } from '../theme-provider';
+import API_CONFIG, { buildURL } from '../../config.api';
+import { useAppSelector } from '../../store/hooks';
 
-const { width } = Dimensions.get("window");
+const { width } = Dimensions.get('window');
 
 // ===== Context =====
 interface SupportModalContextType {
@@ -55,7 +60,7 @@ export const SupportModalProvider = ({
 export const useSupportModal = () => {
   const context = useContext(SupportModalContext);
   if (context === undefined) {
-    throw new Error("useSupportModal must be used within a SupportModalProvider");
+    throw new Error('useSupportModal must be used within a SupportModalProvider');
   }
   return {
     openSupportModal: context.openModal,
@@ -66,41 +71,72 @@ export const useSupportModal = () => {
 export const SupportModal = () => {
   const { isOpen, closeModal } = useContext(SupportModalContext)!;
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [topic, setTopic] = useState("technical");
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
+  const colors = useColors();
+  const { token, user } = useAppSelector((state: any) => state.auth);
+
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    subject: '',
+    message: '',
+    topic: 'technical',
+  });
 
   const topics = [
-    { value: "technical", label: "Technical Issue" },
-    { value: "billing", label: "Billing Question" },
-    { value: "account", label: "Account Help" },
-    { value: "course", label: "Course Content" },
-    { value: "other", label: "Other" },
+    { value: 'technical', label: 'Technical Issue' },
+    { value: 'course', label: 'Course Content' },
+    { value: 'other', label: 'Other' },
   ];
 
+  const handleInputChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSubmit = async () => {
-    if (!email.trim() || !subject.trim() || !message.trim()) return;
+    if (!formData.subject.trim() || !formData.message.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
 
     setLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`${API_CONFIG.baseURL}/help_center/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-    setLoading(false);
-    setSubmitted(true);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || 'Failed to send message. Please try again.');
+      }
 
-    // Reset form after 3 seconds and close modal
-    setTimeout(() => {
-      setSubmitted(false);
-      closeModal();
+      Alert.alert(
+        'Success',
+        'Message sent successfully! Our support team will get back to you within 24 hours.'
+      );
+
       // Reset form
-      setEmail("");
-      setSubject("");
-      setMessage("");
-      setTopic("technical");
-    }, 3000);
+      setFormData({
+        name: user?.name || '',
+        email: user?.email || '',
+        subject: '',
+        message: '',
+        topic: 'technical',
+      });
+
+      closeModal();
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -112,116 +148,149 @@ export const SupportModal = () => {
     >
       <View style={styles.overlay}>
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.header}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            {/* Header */}
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
               <View style={styles.titleContainer}>
-                <Ionicons name="chatbubble" size={16} color="#8b5cf6" />
-                <Text style={styles.title}>Contact Support</Text>
+                <MessageSquare size={20} color={colors.yellow || '#ffd404'} strokeWidth={2.5} />
+                <Text style={[styles.title, { color: colors.foreground }]}>
+                  Contact Support
+                </Text>
               </View>
               <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#6b7280" />
+                <X size={20} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.description}>
-              Fill out the form below to report an issue or get help with your
-              account
+            <Text style={[styles.description, { color: colors.mutedForeground }]}>
+              Fill out the form below to report an issue or get help with your account
             </Text>
 
-            <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
-              {submitted ? (
-                <View style={styles.successAlert}>
-                  <Ionicons name="checkmark-circle" size={20} color="#059669" />
-                  <View style={styles.successContent}>
-                    <Text style={styles.successTitle}>Message Sent!</Text>
-                    <Text style={styles.successDescription}>
-                      Thank you for reaching out. Our support team will get back to
-                      you within 24 hours.
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.form}>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Your Email</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="mk0906145@gmail.com"
-                      placeholderTextColor="#9ca3af"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                    />
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Topic</Text>
-                    <View style={styles.pickerContainer}>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {topics.map((topicItem) => (
-                          <TouchableOpacity
-                            key={topicItem.value}
-                            style={[
-                              styles.topicButton,
-                              topic === topicItem.value && styles.topicButtonActive,
-                            ]}
-                            onPress={() => setTopic(topicItem.value)}
-                          >
-                            <Text
-                              style={[
-                                styles.topicButtonText,
-                                topic === topicItem.value &&
-                                  styles.topicButtonTextActive,
-                              ]}
-                            >
-                              {topicItem.label}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Subject</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={subject}
-                      onChangeText={setSubject}
-                      placeholder="Brief description of your issue"
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Message</Text>
-                    <TextInput
-                      style={[styles.textInput, styles.textArea]}
-                      value={message}
-                      onChangeText={setMessage}
-                      placeholder="Please describe your issue in detail"
-                      placeholderTextColor="#9ca3af"
-                      multiline
-                      numberOfLines={6}
-                      textAlignVertical="top"
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-                    onPress={handleSubmit}
-                    disabled={loading}
+            <ScrollView
+              style={styles.formContainer}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.form}>
+                {/* Topic Selection */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>Topic</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.topicScrollView}
                   >
-                    <Text style={styles.submitButtonText}>
-                      {loading ? "Sending..." : "Send Message"}
-                    </Text>
-                  </TouchableOpacity>
+                    <View style={styles.topicContainer}>
+                      {topics.map((topicItem) => (
+                        <TouchableOpacity
+                          key={topicItem.value}
+                          style={[
+                            styles.topicButton,
+                            {
+                              backgroundColor:
+                                formData.topic === topicItem.value
+                                  ? colors.yellow || '#ffd404'
+                                  : colors.card,
+                              borderColor:
+                                formData.topic === topicItem.value
+                                  ? colors.yellow || '#ffd404'
+                                  : colors.border,
+                            },
+                          ]}
+                          onPress={() => handleInputChange('topic', topicItem.value)}
+                        >
+                          <Text
+                            style={[
+                              styles.topicButtonText,
+                              {
+                                color:
+                                  formData.topic === topicItem.value
+                                    ? colors.background
+                                    : colors.foreground,
+                              },
+                            ]}
+                          >
+                            {topicItem.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
                 </View>
-              )}
+
+                {/* Subject */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>Subject</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: colors.input || colors.card,
+                        borderColor: colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    placeholder="Brief description of your issue"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={formData.subject}
+                    onChangeText={(value) => handleInputChange('subject', value)}
+                    editable={!loading}
+                  />
+                </View>
+
+                {/* Message */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.foreground }]}>Message</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      styles.textArea,
+                      {
+                        backgroundColor: colors.input || colors.card,
+                        borderColor: colors.border,
+                        color: colors.foreground,
+                      },
+                    ]}
+                    placeholder="Please describe your issue in detail"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={formData.message}
+                    onChangeText={(value) => handleInputChange('message', value)}
+                    multiline
+                    numberOfLines={6}
+                    textAlignVertical="top"
+                    editable={!loading}
+                  />
+                </View>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    {
+                      backgroundColor: colors.yellow || '#ffd404',
+                      opacity: loading ? 0.6 : 1,
+                    },
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <ActivityIndicator size="small" color={colors.background} />
+                      <Text style={[styles.submitButtonText, { color: colors.background }]}>
+                        Sending...
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={[styles.submitButtonText, { color: colors.background }]}>
+                      Send Message
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -233,43 +302,42 @@ export const SupportModal = () => {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
   keyboardAvoidingView: {
-    width: "100%",
-    alignItems: "center",
+    width: '100%',
+    alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: "white",
     borderRadius: 12,
     width: width * 0.9,
-    maxWidth: 400,
-    maxHeight: "80%",
-    shadowColor: "#000",
+    maxWidth: 500,
+    maxHeight: '80%',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 5,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
   },
   titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   title: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
+    fontWeight: '600',
   },
   closeButton: {
     padding: 4,
@@ -277,38 +345,13 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 12,
-    color: "#6b7280",
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 0,
     paddingBottom: 16,
   },
   formContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-  },
-  successAlert: {
-    flexDirection: "row",
-    backgroundColor: "#f0fdf4",
-    borderWidth: 1,
-    borderColor: "#bbf7d0",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  successContent: {
-    flex: 1,
-  },
-  successTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#065f46",
-    marginBottom: 4,
-  },
-  successDescription: {
-    fontSize: 12,
-    color: "#047857",
-    lineHeight: 16,
   },
   form: {
     gap: 16,
@@ -318,57 +361,46 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: "500",
-    color: "#374151",
+    fontWeight: '500',
   },
   textInput: {
     borderWidth: 1,
-    borderColor: "#d1d5db",
     borderRadius: 8,
     padding: 12,
     fontSize: 12,
-    backgroundColor: "white",
   },
   textArea: {
-    minHeight: 120,
-    textAlignVertical: "top",
+    minHeight: 150,
+    textAlignVertical: 'top',
   },
-  pickerContainer: {
+  topicScrollView: {
     marginTop: 4,
+  },
+  topicContainer: {
+    flexDirection: 'row',
+    gap: 8,
   },
   topicButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#d1d5db",
-    backgroundColor: "white",
-    marginRight: 8,
-  },
-  topicButtonActive: {
-    backgroundColor: "#8b5cf6",
-    borderColor: "#8b5cf6",
   },
   topicButtonText: {
     fontSize: 12,
-    color: "#6b7280",
-  },
-  topicButtonTextActive: {
-    color: "white",
+    fontWeight: '500',
   },
   submitButton: {
-    backgroundColor: "#8b5cf6",
     paddingVertical: 12,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 8,
   },
-  submitButtonDisabled: {
-    backgroundColor: "#c4b5fd",
-  },
   submitButtonText: {
-    color: "white",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: '600',
   },
 });

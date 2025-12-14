@@ -1,5 +1,5 @@
 import * as React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from "react-native";
 
 export interface TabsProps {
   defaultValue: string;
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+    borderRadius: 2,
     backgroundColor: "#f3f4f6",
     padding: 2,
   },
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 6,
+    borderRadius: 2,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
@@ -167,4 +167,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export { Tabs, TabsList, TabsTrigger, TabsContent };
+export { Tabs, TabsContent, TabsList, TabsTrigger };
+

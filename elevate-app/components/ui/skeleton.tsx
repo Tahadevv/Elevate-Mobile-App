@@ -45,7 +45,7 @@ function Skeleton({ style, width = "100%", height = 20 }: SkeletonProps) {
 const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: "#e5e7eb",
-    borderRadius: 8,
+    borderRadius: 2,
   },
 });
 

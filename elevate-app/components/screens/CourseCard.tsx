@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Highlight } from "@/components/pages/Highlight";
 import { CustomButton } from "@/components/pages/CustomButton";
+import { Highlight } from "@/components/pages/Highlight";
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { HoverCardHard } from "../pages/hoverCardHard";
 
 interface CourseCardProps {
@@ -27,7 +27,7 @@ function CourseCard({ title, price, image, rating, mentor, tag, tagColor }: Cour
               key={i}
               name={i < rating ? "star" : "star-outline"}
               size={16}
-              color={i < rating ? "#ffd404" : "#d1d5db"}
+              color={i < rating ? "#185abd" : "#d1d5db"}
             />
           ))}
         </View>
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   courseCard: {
-    borderRadius: 8,
+    borderRadius: 2,
     overflow: 'hidden',
     flex: 1,
     height: '100%',

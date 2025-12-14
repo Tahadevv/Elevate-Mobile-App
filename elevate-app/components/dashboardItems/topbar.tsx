@@ -1,22 +1,76 @@
-import { ChevronDown, ChevronUp, HelpCircle, LogOut, Settings, User } from "lucide-react-native";
-import React from "react";
+import { logout } from "@/store/slices/authSlice";
+import { fetchUserProfile } from "@/store/slices/userSlice";
+import { useRouter } from 'expo-router';
+import { ChevronDown, ChevronUp, HelpCircle, LogOut, Menu, ShieldCheck, User, X } from "lucide-react-native";
+import React, { useEffect } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
 import { useColors } from "../theme-provider";
 
 const menuOptions = [
   { icon: User, text: "My Profile", href: "/dashboard/account" },
-  { icon: Settings, text: "Billing and subscription", href: "/dashboard/settings" },
+  { icon: ShieldCheck, text: "Subscribed Domains", href: "/dashboard/current-subscription" },
   { icon: HelpCircle, text: "Help Center", href: "/dashboard/help" },
 ];
 
-export default function Topbar() {
+interface TopbarProps {
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+export default function Topbar({ sidebarOpen = false, onToggleSidebar }: TopbarProps) {
   const [open, setOpen] = React.useState(false);
   const [logoutOpen, setLogoutOpen] = React.useState(false);
   const [dropdownPosition, setDropdownPosition] = React.useState({ top: 0, left: 0, width: 0 });
   const profileButtonRef = React.useRef<TouchableOpacity>(null);
   const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
+  const router = useRouter();
 
-  const styles = createStyles(colors);
+  // Get user data from Redux
+  const { token, user: authUser } = useSelector((state: any) => state.auth);
+  const { userProfile } = useSelector((state: any) => state.user);
+
+  // Use user data from either auth.user or user.userProfile
+  const user = authUser || userProfile;
+  const userName = user?.name || user?.email?.split('@')[0] || 'User';
+  const userInitial = userName.charAt(0).toUpperCase();
+
+  // Fetch user profile if not available
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchUserProfile(token) as any);
+    }
+  }, [token, user, dispatch]);
+
+  const styles = createStyles(colors, insets);
+
+  const handleLogout = async () => {
+    console.log('========================================');
+    console.log('🚪 LOGOUT INITIATED');
+    console.log('========================================');
+    
+    try {
+      // Dispatch logout action to clear Redux state
+      await dispatch(logout() as any);
+      
+      console.log('✅ Logout successful - Clearing session');
+      console.log('Navigating to splash screen...');
+      console.log('========================================');
+      
+      // Close modals
+      setLogoutOpen(false);
+      setOpen(false);
+      
+      // Navigate to root index (splash screen)
+      router.replace('/');
+    } catch (error) {
+      console.log('❌ Logout error:', error);
+      console.log('========================================');
+    }
+  };
 
   const measureProfileButton = () => {
     if (profileButtonRef.current) {
@@ -40,6 +94,19 @@ export default function Topbar() {
   return (
     <>
       <View style={styles.container}>
+        {/* Hamburger Menu Button - Top Left */}
+        <TouchableOpacity
+          style={styles.hamburgerButton}
+          onPress={onToggleSidebar}
+        >
+          {sidebarOpen ? (
+            <X size={24} color={colors.foreground} />
+          ) : (
+            <Menu size={24} color={colors.foreground} />
+          )}
+        </TouchableOpacity>
+
+        {/* Profile Button - Top Right */}
         <TouchableOpacity 
           ref={profileButtonRef}
           style={styles.profileButton} 
@@ -51,9 +118,9 @@ export default function Topbar() {
             <ChevronDown size={24} color={colors.foreground} style={styles.chevron} />
           )}
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>J</Text>
+            <Text style={styles.avatarText}>{userInitial}</Text>
           </View>
-          <Text style={[styles.userName, { color: colors.foreground }]}>John Drew</Text>
+          <Text style={[styles.userName, { color: colors.foreground }]}>{userName}</Text>
         </TouchableOpacity>
       </View>
 
@@ -79,7 +146,14 @@ export default function Topbar() {
             }
           ]}>
             {menuOptions.map((option, idx) => (
-              <TouchableOpacity key={idx} style={styles.menuItem}>
+              <TouchableOpacity 
+                key={idx} 
+                style={styles.menuItem}
+                onPress={() => {
+                  setOpen(false);
+                  router.push(option.href as any);
+                }}
+              >
                 <option.icon size={16} color={colors.foreground} style={styles.menuIcon} />
                 <Text style={[styles.menuText, { color: colors.foreground }]}>{option.text}</Text>
               </TouchableOpacity>
@@ -111,10 +185,7 @@ export default function Topbar() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.logoutButton}
-                onPress={() => {
-                  setLogoutOpen(false);
-                  // Add your logout logic here
-                }}
+                onPress={handleLogout}
               >
                 <Text style={styles.logoutButtonText}>Logout</Text>
               </TouchableOpacity>
@@ -126,15 +197,22 @@ export default function Topbar() {
   );
 }
 
-const createStyles = (colors: any) => StyleSheet.create({
+const createStyles = (colors: any, insets: any) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Math.max(insets.top, 8),
+    paddingBottom: 12,
     backgroundColor: colors.background,
     position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  hamburgerButton: {
+    padding: 8,
+    zIndex: 10,
   },
   profileButton: {
     flexDirection: 'row',

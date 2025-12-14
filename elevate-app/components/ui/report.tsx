@@ -29,7 +29,7 @@ const Report: React.FC<ReportProps> = ({ title, content, style }) => {
 
 const styles = StyleSheet.create({
   report: {
-    borderRadius: 8,
+    borderRadius: 2,
     padding: 16,
     borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },

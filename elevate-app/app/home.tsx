@@ -1,52 +1,38 @@
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import AnnouncementsScreen from "../components/screens/AnnouncementsScreen";
-import HelpCenterScreen from "../components/screens/HelpCenterScreen";
-import MyCoursesScreen from "../components/screens/MyCoursesScreen";
-import SemiBottomBar from "../components/screens/semibottombar";
-import SettingsScreen from "../components/screens/SettingsScreen";
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from "../components/theme-provider";
 
-function HomeContent() {
-  const [activeTab, setActiveTab] = useState('courses');
+export default function Home() {
   const colors = useColors();
-
+  const router = useRouter();
   const styles = createStyles(colors);
 
-  const handleTabPress = (tabName: string) => {
-    setActiveTab(tabName);
-  };
-
-  const renderCurrentScreen = () => {
-    switch (activeTab) {
-      case 'courses':
-        return <MyCoursesScreen onNavigate={handleTabPress} />;
-      case 'announcements':
-        return <AnnouncementsScreen onNavigate={handleTabPress} />;
-      case 'help':
-        return <HelpCenterScreen onNavigate={handleTabPress} />;
-      case 'settings':
-        return <SettingsScreen onNavigate={handleTabPress} />;
-      default:
-        return <MyCoursesScreen onNavigate={handleTabPress} />;
-    }
+  const handleNavigateToDashboard = () => {
+    router.push('/dashboard' as any);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {renderCurrentScreen()}
-      
-      {/* Bottom Navigation Bar */}
-      <SemiBottomBar 
-        activeTab={activeTab} 
-        onTabPress={handleTabPress} 
-      />
+      <View style={styles.content}>
+        <Text style={[styles.title, { color: colors.foreground }]}>
+          Welcome to Elevate
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.muted }]}>
+          Your learning journey starts here
+        </Text>
+        
+        <TouchableOpacity 
+          style={[styles.dashboardButton, { backgroundColor: colors.primary }]}
+          onPress={handleNavigateToDashboard}
+        >
+          <Text style={[styles.dashboardButtonText, { color: colors.primaryForeground }]}>
+            Go to Dashboard
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
-}
-
-export default function Home() {
-  return <HomeContent />;
 }
 
 const createStyles = (colors: any) => StyleSheet.create({
@@ -54,26 +40,31 @@ const createStyles = (colors: any) => StyleSheet.create({
     flex: 1,
     paddingTop: 0,
   },
-  scrollView: {
+  content: {
     flex: 1,
-  },
-  contentSection: {
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  sectionTitle: {
-    fontSize: 20,
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 18,
+    marginBottom: 40,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  dashboardButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 2,
+  },
+  dashboardButtonText: {
+    fontSize: 18,
     fontWeight: '600',
-    color: colors.foreground,
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    color: colors.muted,
-    lineHeight: 20,
-  },
-  bottomPadding: {
-    height: 100, // Space for bottom navigation
   },
 });

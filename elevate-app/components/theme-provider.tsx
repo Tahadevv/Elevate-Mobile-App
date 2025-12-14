@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useColorScheme } from 'react-native';
 
 // Define theme types
 export type Theme = 'light' | 'dark' | 'system';
@@ -14,8 +13,8 @@ export const colors = {
     border: '#e5e7eb',
     input: '#ffffff',
     ring: '#0f172a',
-    primary: '#0f172a',
-    primaryForeground: '#f8fafc',
+    primary: '#185abd',
+    primaryForeground: '#ffffff',
     secondary: '#f1f5f9',
     secondaryForeground: '#0f172a',
     destructive: '#ef4444',
@@ -26,15 +25,15 @@ export const colors = {
     popoverForeground: '#111827',
     accent: '#f1f5f9',
     accentForeground: '#0f172a',
-    yellow: '#ffd404',
+    yellow: '#185abd',
     yellowAccent: '#fbbf24',
   },
   dark: {
     background: '#0f172a',
     foreground: '#f8fafc',
-    muted: '#1e293b',
+    muted: '#94a3b8',
     mutedForeground: '#94a3b8',
-    border: '#1e293b',
+    border: '#6b7280',
     input: '#1e293b',
     ring: '#cbd5e1',
     primary: '#f8fafc',
@@ -66,11 +65,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Theme provider component
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemColorScheme = useColorScheme();
-  const [theme, setTheme] = useState<Theme>('system');
+  const [theme, setTheme] = useState<Theme>('light');
 
-  // Determine actual theme based on system preference
-  const actualTheme = theme === 'system' ? systemColorScheme || 'light' : theme;
+  // Determine actual theme - default to light
+  const actualTheme = theme === 'system' ? 'light' : theme;
   const isDark = actualTheme === 'dark';
   const currentColors = colors[actualTheme];
 
@@ -79,7 +77,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (theme === 'system') {
       // Theme will automatically update when systemColorScheme changes
     }
-  }, [theme, systemColorScheme]);
+  }, [theme]);
 
   const value: ThemeContextType = {
     theme,

@@ -71,7 +71,7 @@ interface AnnouncementsScreenProps {
 export default function AnnouncementsScreen({ onNavigate }: AnnouncementsScreenProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>(sampleAnnouncements);
   const [filter, setFilter] = useState<"all" | "unread" | "urgent">("all");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const colors = useColors();
 
   const getTypeIcon = (type: string) => {

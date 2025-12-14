@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   content: {
     backgroundColor: "white",
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     minWidth: 200,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: 2,
     gap: 8,
   },
   itemInset: {
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     left: 8,
     width: 14,
     height: 14,
-    borderRadius: 7,
+    borderRadius: 2,
     borderWidth: 2,
     borderColor: "#d1d5db",
     alignItems: "center",
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   radioDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: 2,
     backgroundColor: "#3b82f6",
   },
   label: {

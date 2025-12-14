@@ -1,12 +1,10 @@
 import * as React from "react";
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
+    Modal,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    ViewStyle
 } from "react-native";
 
 export interface TooltipProps {
@@ -99,7 +97,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -108,4 +106,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
+

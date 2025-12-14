@@ -1,15 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as React from "react";
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ViewStyle,
-  TextStyle,
+    Dimensions,
+    Modal,
+    StyleSheet,
+    Text,
+    TextStyle,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   content: {
     backgroundColor: "white",
-    borderRadius: 8,
+    borderRadius: 2,
     padding: 24,
     margin: 20,
     width: width * 0.9,
@@ -192,13 +192,6 @@ const styles = StyleSheet.create({
 });
 
 export {
-  Dialog,
-  DialogTrigger,
-  DialogOverlay,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
+    Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogTitle, DialogTrigger
 };
+

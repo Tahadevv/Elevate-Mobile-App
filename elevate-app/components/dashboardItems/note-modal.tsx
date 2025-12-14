@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 2,
     width: width * 0.9,
     maxWidth: 400,
     padding: 24,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-    borderRadius: 20,
+    borderRadius: 2,
   },
   form: {
     gap: 16,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   textInput: {
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 8,
+    borderRadius: 2,
     padding: 12,
     fontSize: 16,
     backgroundColor: "white",
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     borderColor: "#d1d5db",
     backgroundColor: "white",
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   submitButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 2,
     backgroundColor: "#8b5cf6",
   },
   submitButtonText: {

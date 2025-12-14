@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 2,
     alignSelf: "flex-start",
   },
   triggerButtonText: {
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 2,
     width: width * 0.9,
     height: height * 0.8,
     maxWidth: 425,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 2,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   messageBubble: {
     maxWidth: "80%",
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 2,
   },
   userMessageBubble: {
     backgroundColor: "#3b82f6",

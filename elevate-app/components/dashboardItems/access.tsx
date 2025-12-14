@@ -1,18 +1,38 @@
-import React from 'react'
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-const Access = () => {
-  return (
-    <div>
-       <div className="bg-[#f0f0ff]   rounded-mid px-3 py-2 mb-8 flex flex-col sm:flex-row items-center justify-between">
-          <div className="flex items-center gap-3  sm:mb-0">
-            <Lock className="h-5 w-5 text-[#ffd404]  " />
-            <p className="text-xs dark:text-black md:text-sm font-bold">Unlock access to all the material and the AI Chatbot</p>
-          </div>
-          <Button className="bg-[#ffd404] hidden sm:block hover:bg-[#ffd404] w-full text-sm font-bold dark:text-white sm:w-auto rounded-mid">Unlock Access</Button>
-        </div>
-    </div>
-  )
-}
+import { Lock } from "lucide-react-native";
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../theme-provider';
 
-export default Access
+const Access = () => {
+  const { colors } = useTheme();
+  
+  return (
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Lock size={20} color="#185abd" />
+        <Text style={[styles.text, { color: colors.foreground }]}>
+          Unlock access to all the material and the AI Chatbot
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  text: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 20,
+  },
+});
+
+export default Access;

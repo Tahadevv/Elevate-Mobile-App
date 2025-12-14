@@ -1,5 +1,7 @@
-import React from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Logo from '../../assets/images/logo.svg';
 
 const { width, height } = Dimensions.get('window');
 
@@ -9,6 +11,41 @@ interface OnboardingScreen3Props {
 }
 
 export default function OnboardingScreen3({ onPrevious, onGetStarted }: OnboardingScreen3Props) {
+  // State to track which accordion is open (only one at a time)
+  const [openAccordion, setOpenAccordion] = useState<number | null>(0); // First one open by default
+  const insets = useSafeAreaInsets();
+
+  // Topics data with descriptions
+  const topics = [
+    {
+      title: "Programming Basic",
+      description: "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa cum sociis natoque penatibus consectetuer adipiscing elit.",
+    },
+    {
+      title: "Get A Helpful Roadmap",
+      description: "Discover a structured learning path that guides you from beginner to advanced programming concepts. Our roadmap is designed to help you progress efficiently through your learning journey.",
+    },
+    {
+      title: "Build Tool With Logic",
+      description: "Learn how to create practical tools and applications by applying logical thinking and programming principles. This hands-on approach will strengthen your problem-solving abilities.",
+    },
+    {
+      title: "Computer Science",
+      description: "Explore fundamental computer science concepts including algorithms, data structures, and computational thinking. Understanding these principles will make you a more effective programmer.",
+    },
+    {
+      title: "Data Structure",
+      description: "Master essential data structures like arrays, linked lists, trees, and graphs. Learn when and how to implement each structure to optimize your code for different scenarios.",
+    },
+  ];
+
+  // Toggle accordion open/close (only one at a time)
+  const toggleAccordion = (index: number) => {
+    setOpenAccordion(openAccordion === index ? null : index);
+  };
+
+  const styles = createStyles(insets);
+
   return (
     <View style={styles.container}>
       {/* Background gradient */}
@@ -19,115 +56,89 @@ export default function OnboardingScreen3({ onPrevious, onGetStarted }: Onboardi
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Logo Container */}
-        
-
-        {/* Main Content */}
-      <View style={styles.contentContainer}>
-          <View style={styles.titleContainer}>
-        <Text style={styles.title}>
-          Ready to Start Your{' '}
-              <Text style={styles.highlight}>Coding Journey</Text>?
-        </Text>
+        {/* Logo Container - Centered */}
+        <View style={styles.logoContainer}>
+          <Logo 
+            width={Math.min(240, width * 0.7)} 
+            height={60} 
+            style={styles.logo}
+          />
           </View>
         
-        <Text style={styles.description}>
-            Join thousands of students who have already transformed their careers with our comprehensive programming courses.
+        {/* FAQ Section - Center */}
+        <View style={styles.faqContainer}>
+          <Text style={styles.faqTitle}>
+            We Also Provide <Text style={styles.highlight}>Online Programming Videos</Text>
           </Text>
-
-          {/* Course Showcase */}
           
-
-          {/* Testimonials */}
-          <View style={styles.testimonials}>
-            <Text style={styles.sectionTitle}>
-              What Our <Text style={styles.highlight}>Students Say</Text>
+          <View style={styles.faqContent}>
+            {topics.map((topic, index) => (
+              <View key={index} style={styles.accordionItem}>
+                <TouchableOpacity 
+                  style={[
+                    styles.accordionHeader,
+                    openAccordion === index && styles.accordionHeaderActive
+                  ]}
+                  onPress={() => toggleAccordion(index)}
+                >
+                  <Text style={styles.accordionTitle}>{topic.title}</Text>
+                  <Text style={styles.accordionIcon}>
+                    {openAccordion === index ? '▼' : '▶'}
         </Text>
-
-            <View style={styles.testimonialCard}>
-              <View style={styles.testimonialHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>JS</Text>
-                </View>
-                <View style={styles.testimonialInfo}>
-                  <Text style={styles.testimonialName}>John Smith</Text>
-                  <Text style={styles.testimonialRole}>Software Developer</Text>
-                </View>
-                <View style={styles.testimonialRating}>
-                  <Text style={styles.stars}>★★★★★</Text>
-                </View>
+                </TouchableOpacity>
+                
+                {openAccordion === index && (
+                  <Animated.View style={styles.accordionContent}>
+                    <Text style={styles.accordionDescription}>{topic.description}</Text>
+                  </Animated.View>
+                )}
               </View>
-              <Text style={styles.testimonialText}>
-                "The course structure is excellent and the instructors are incredibly knowledgeable. 
-                I went from beginner to landing my first developer job in just 6 months!"
-              </Text>
-            </View>
-
-            <View style={styles.testimonialCard}>
-              <View style={styles.testimonialHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>SM</Text>
-                </View>
-                <View style={styles.testimonialInfo}>
-                  <Text style={styles.testimonialName}>Sarah Miller</Text>
-                  <Text style={styles.testimonialRole}>Frontend Developer</Text>
-                </View>
-                <View style={styles.testimonialRating}>
-                  <Text style={styles.stars}>★★★★★</Text>
-          </View>
-          </View>
-              <Text style={styles.testimonialText}>
-                "Hands-on projects and real-world examples made learning so much easier. 
-                The community support is amazing too!"
-              </Text>
+            ))}
           </View>
         </View>
-
-          {/* Final Stats */}
-          <View style={styles.finalStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>2M+</Text>
-              <Text style={styles.statLabel}>Students Worldwide</Text>
-          </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>98%</Text>
-              <Text style={styles.statLabel}>Success Rate</Text>
-          </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>24/7</Text>
-              <Text style={styles.statLabel}>Support</Text>
-          </View>
-        </View>
-      </View>
+      </ScrollView>
 
         {/* Bottom Section */}
       <View style={styles.bottomContainer}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.previousButton} onPress={onPrevious}>
-              <View style={styles.previousButtonShadow} />
-            <Text style={styles.previousButtonText}>Previous</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.getStartedButton} onPress={onGetStarted}>
-              <View style={styles.getStartedButtonShadow} />
-            <Text style={styles.getStartedButtonText}>Get Started</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.paginationContainer}>
-          <View style={styles.paginationDot} />
-          <View style={styles.paginationDot} />
-          <View style={[styles.paginationDot, styles.paginationDotActive]} />
-        </View>
+        <ButtonWithOffsetShadow label="Get Started" onPress={onGetStarted} styles={styles} />
       </View>
-      </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+interface ButtonProps {
+  label: string;
+  onPress: () => void;
+}
+
+function ButtonWithOffsetShadow({ label, onPress, styles }: ButtonProps & { styles: any }) {
+  const [isPressed, setIsPressed] = useState(false);
+
+  return (
+    <View style={styles.buttonWrapper}>
+      <View
+        style={[
+          styles.buttonShadow,
+          isPressed ? styles.buttonShadowPressed : undefined,
+        ]}
+      />
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => setIsPressed(true)}
+        onPressOut={() => setIsPressed(false)}
+        style={({ pressed }) => [styles.cta, pressed ? styles.ctaPressed : undefined]}
+      >
+        <Text style={styles.ctaText}>{label}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function createStyles(insets: any) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 10,
+    paddingTop: 0,
     backgroundColor: '#FDFBFB', // Light gray background like website
   },
   scrollView: {
@@ -135,7 +146,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: 32 + insets.bottom, // Account for semi bottom bar height
   },
   backgroundGradient: {
     position: 'absolute',
@@ -147,41 +158,66 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginTop: height * 0.05,
-    marginBottom: 32,
-  },
-  logoWrapper: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    marginTop: height * 0.08,
+    marginBottom: 10,
   },
   logo: {
-    width: 120,
-    height: 60,
+    alignSelf: 'center',
   },
-  contentContainer: {
+  faqContainer: {
     flex: 1,
-    justifyContent: 'flex-start',
-    paddingTop: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  titleContainer: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 32,
+  faqTitle: {
+    fontSize: 24,
     fontWeight: '600',
-    color: '#1E293B', // slate-800
+    color: '#1E293B',
     textAlign: 'center',
-    lineHeight: 38,
-    letterSpacing: -0.5,
+    marginBottom: 30,
+    lineHeight: 30,
+  },
+  faqContent: {
+    marginBottom: 40,
+  },
+  accordionItem: {
+    marginBottom: 8,
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#1F2937', // Dark gray border like the original
+  },
+  accordionHeaderActive: {
+    borderColor: '#1F2937',
+    backgroundColor: 'white',
+  },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937', // Dark gray text
+    flex: 1,
+  },
+  accordionIcon: {
+    fontSize: 16,
+    color: '#3B82F6', // Blue color for arrow
+    marginLeft: 8,
+  },
+  accordionContent: {
+    backgroundColor: 'white',
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 20,
+    paddingRight: 12,
+  },
+  accordionDescription: {
+    fontSize: 12,
+    color: '#6B7280', // Gray text color
+    lineHeight: 18,
   },
   highlight: {
     backgroundColor: '#FCE7F3', // pink-200 like website
@@ -190,284 +226,45 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden',
   },
-  description: {
-    fontSize: 16,
-    color: '#64748B', // slate-500
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 40,
-    paddingHorizontal: 12,
-    fontWeight: '400',
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#1E293B', // slate-800
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  courseShowcase: {
-    marginBottom: 40,
-  },
-  courseCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0', // slate-200
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  courseImage: {
-    height: 100,
-    backgroundColor: '#F1F5F9', // slate-100
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3B82F6', // blue-500
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  playIcon: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 1,
-  },
-  courseContent: {
-    padding: 16,
-  },
-  courseTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B', // slate-800
-    marginBottom: 6,
-  },
-  courseSubtitle: {
-    fontSize: 12,
-    color: '#64748B', // slate-500
-    marginBottom: 12,
-  },
-  courseMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stars: {
-    color: '#F59E0B', // amber-500
-    fontSize: 14,
-    marginRight: 6,
-  },
-  ratingText: {
-    fontSize: 10,
-    color: '#64748B', // slate-500
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0EA5E9', // sky-500
-  },
-  enrollButton: {
-    backgroundColor: '#3B82F6', // blue-500
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  enrollButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  testimonials: {
-    marginBottom: 40,
-  },
-  testimonialCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0', // slate-200
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  testimonialHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FCE7F3', // pink-200
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  avatarText: {
-    color: '#EC4899', // pink-500
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  testimonialInfo: {
-    flex: 1,
-  },
-  testimonialName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1E293B', // slate-800
-    marginBottom: 1,
-  },
-  testimonialRole: {
-    fontSize: 10,
-    color: '#64748B', // slate-500
-  },
-  testimonialRating: {
-    marginLeft: 'auto',
-  },
-  testimonialText: {
-    fontSize: 12,
-    color: '#475569', // slate-600
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
-  finalStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
-    paddingHorizontal: 12,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000000', // Black color
-    marginBottom: 6,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: '#000000', // Black color
-    textAlign: 'center',
-    fontWeight: '500',
-  },
   bottomContainer: {
-    paddingBottom: 20,
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: '10%', // 90% of screen height
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-    gap: 12,
-  },
-  previousButton: {
-    backgroundColor: '#F1F5F9', // slate-100
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    flex: 0.48,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0', // slate-200
+  buttonWrapper: {
+    alignSelf: 'stretch',
     position: 'relative',
   },
-  previousButtonShadow: {
+  buttonShadow: {
     position: 'absolute',
-    top: 3,
-    left: 3,
-    right: -3,
-    bottom: -3,
-    backgroundColor: '#CBD5E1', // slate-300
-    borderRadius: 10,
-    zIndex: -1,
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    transform: [{ translateX: -5 }, { translateY: 5 }],
   },
-  previousButtonText: {
-    color: '#475569', // slate-600
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+  buttonShadowPressed: {
+    transform: [{ translateX: -8 }, { translateY: 8 }],
   },
-  getStartedButton: {
-    backgroundColor: '#3B82F6', // blue-500 like website
-    paddingVertical: 16,
+  cta: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 10,
-    flex: 0.48,
-    alignItems: 'center',
-    position: 'relative',
-    shadowColor: '#3B82F6',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  getStartedButtonShadow: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    right: -6,
-    bottom: -6,
-    backgroundColor: '#1E40AF', // blue-700
-    borderRadius: 10,
-    zIndex: -1,
-  },
-  getStartedButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  paginationContainer: {
-    flexDirection: 'row',
+    borderRadius: 2,
+    minHeight: 56,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'stretch',
   },
-  paginationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#CBD5E1', // slate-300
-    marginHorizontal: 4,
+  ctaPressed: {
+    opacity: 0.9,
   },
-  paginationDotActive: {
-    backgroundColor: '#3B82F6', // blue-500
-    width: 24,
+  ctaText: { 
+    color: '#FFFFFF', 
+    fontWeight: '700' 
   },
 });
+}

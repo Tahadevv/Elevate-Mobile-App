@@ -2,11 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -186,7 +186,7 @@ export default function CourseTabs() {
           {hasMoreSubjects && (
             <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
               <Text style={styles.loadMoreText}>load more</Text>
-              <Ionicons name="arrow-forward" size={16} color="#ffd404" />
+              <Ionicons name="arrow-forward" size={16} color="#185abd" />
             </TouchableOpacity>
           )}
         </View>
@@ -214,7 +214,7 @@ export default function CourseTabs() {
           {hasMoreLibrary && (
             <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMoreLibrary}>
               <Text style={styles.loadMoreText}>load more</Text>
-              <Ionicons name="arrow-forward" size={16} color="#ffd404" />
+              <Ionicons name="arrow-forward" size={16} color="#185abd" />
             </TouchableOpacity>
           )}
         </View>
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   },
   activeTabHeader: {
     borderBottomWidth: 2,
-    borderBottomColor: '#ffd404',
+    borderBottomColor: '#185abd',
   },
   tabHeaderText: {
     fontSize: 14,
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#000',
-    borderRadius: 6,
+    borderRadius: 2,
     backgroundColor: '#fff',
     gap: 12,
   },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   loadMoreText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#ffd404',
+    color: '#185abd',
     marginRight: 8,
   },
 });

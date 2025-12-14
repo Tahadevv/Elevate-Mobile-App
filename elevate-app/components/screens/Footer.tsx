@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { CustomButton } from "@/components/pages/CustomButton";
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Logo Component
 function Logo() {
@@ -22,7 +22,7 @@ interface SocialIconProps {
 function SocialIcon({ href, iconName, label }: SocialIconProps) {
   return (
     <TouchableOpacity style={styles.socialIcon} accessibilityLabel={label}>
-      <Ionicons name={iconName} size={20} color="#ffd404" />
+              <Ionicons name={iconName} size={20} color="#185abd" />
     </TouchableOpacity>
   );
 }
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   emailInput: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 2,
     fontSize: 14,
     width: '100%',
     backgroundColor: 'white',

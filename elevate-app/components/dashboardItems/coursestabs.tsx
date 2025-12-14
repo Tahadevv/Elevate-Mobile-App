@@ -1,29 +1,31 @@
+import { useRouter } from "expo-router";
 import {
-    ArrowRight,
-    Award,
-    BarChart,
-    Bot,
-    Brackets,
-    Brain,
-    Briefcase,
-    Cloud,
-    CloudCog,
-    Code,
-    Coffee,
-    Cpu,
-    Gamepad,
-    Laptop,
-    LineChart,
-    Palette,
-    ScrollText,
-    ShieldCheck,
-    Smartphone,
-    SquareIcon as SquareC,
-    SquareIcon as SquareG,
-    SquareIcon as SquareJs,
+  ArrowRight,
+  Award,
+  BarChart,
+  Bot,
+  Brackets,
+  Brain,
+  Briefcase,
+  Cloud,
+  CloudCog,
+  Code,
+  Coffee,
+  Cpu,
+  Gamepad,
+  Laptop,
+  LineChart,
+  Palette,
+  ScrollText,
+  ShieldCheck,
+  Smartphone,
+  SquareIcon as SquareC,
+  SquareIcon as SquareG,
+  SquareIcon as SquareJs,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useAppSelector } from "../../store/hooks";
 import { useColors } from "../theme-provider";
 
 // Map icon names to Lucide React Native components
@@ -51,79 +53,82 @@ const iconMap: { [key: string]: any } = {
   Cloud,
 };
 
-const allSubjects = [
-  { name: "Code foundations", icon: "Award" },
-  { name: "Professional skills", icon: "Briefcase" },
-  { name: "Python", icon: "Code" },
-  { name: "HTML & CSS", icon: "Brackets" },
-  { name: "Data science", icon: "BarChart" },
-  { name: "Java", icon: "Coffee" },
-  { name: "Web development", icon: "Code" },
-  { name: "Data analytics", icon: "LineChart" },
-  { name: "Interview prep", icon: "Award" },
-  { name: "JavaScript", icon: "SquareJs" },
-  { name: "Web design", icon: "Palette" },
-  { name: "Machine learning", icon: "Brain" },
-  { name: "Computer science", icon: "Cpu" },
-  { name: "C++", icon: "SquareC" },
-  { name: "Mobile development", icon: "Smartphone" },
-  { name: "AI", icon: "Bot" },
-  { name: "IT", icon: "Laptop" },
-  { name: "C#", icon: "SquareC" },
-  { name: "Game development", icon: "Gamepad" },
-  { name: "Cloud computing", icon: "Cloud" },
-  { name: "Cybersecurity", icon: "ShieldCheck" },
-  { name: "Go", icon: "SquareG" },
-  { name: "DevOps", icon: "CloudCog" },
-  { name: "Certification prep", icon: "Award" },
-  { name: "Networking", icon: "Cloud" },
-  { name: "Databases", icon: "BarChart" },
-  { name: "Algorithms", icon: "Brain" },
-  { name: "Operating Systems", icon: "Cpu" },
-  { name: "Software Engineering", icon: "Brain" },
-  { name: "Project Management", icon: "Briefcase" },
-];
+const SUBJECTS_PER_LOAD = 8;
 
-const courseLibrarySubjects = [
-  { name: "AWS Certification", icon: "Cloud" },
-  { name: "Microsoft Azure", icon: "CloudCog" },
-  { name: "Google Cloud", icon: "Cloud" },
-  { name: "Cisco Networking", icon: "Cpu" },
-  { name: "CompTIA A+", icon: "Laptop" },
-];
+interface Course {
+  id: number;
+  name: string;
+}
 
 export default function CourseTabs() {
   const [activeTab, setActiveTab] = useState("currently-studying");
-  const [displayedSubjects, setDisplayedSubjects] = useState(allSubjects.slice(0, 8));
-  const [displayedLibrarySubjects, setDisplayedLibrarySubjects] = useState(courseLibrarySubjects.slice(0, 4));
+  const [visibleSubjectsCount, setVisibleSubjectsCount] = useState(SUBJECTS_PER_LOAD);
+  const [visibleLibraryCount, setVisibleLibraryCount] = useState(SUBJECTS_PER_LOAD);
+  
   const colors = useColors();
+  const router = useRouter();
+  
+  // Get dashboard data and selected domain from Redux
+  const { dashboardData, selectedDomain } = useAppSelector((state: any) => state.courses);
+  
+  // Find the domain in dashboardData that matches selectedDomain by id
+  const matchingDomain = dashboardData?.find((domain: any) => domain.id === selectedDomain?.id);
+  
+  // Get courses from matching domain
+  const currentlyStudyingCourses = matchingDomain?.currently_studying || [];
+  const courseLibraryCourses = matchingDomain?.course_library || [];
+  
+  console.log('🎯 CourseTabs - Selected Domain ID:', selectedDomain?.id);
+  console.log('🎯 CourseTabs - Matching Domain:', matchingDomain);
+  console.log('🎯 Currently Studying:', currentlyStudyingCourses);
+  console.log('🎯 Course Library:', courseLibraryCourses);
+  
+  // Get displayed courses based on load more state
+  const subjectsToDisplay = currentlyStudyingCourses.slice(0, visibleSubjectsCount);
+  const libraryToDisplay = courseLibraryCourses.slice(0, visibleLibraryCount);
+  const hasMoreSubjects = visibleSubjectsCount < currentlyStudyingCourses.length;
+  const hasMoreLibrary = visibleLibraryCount < courseLibraryCourses.length;
 
   const styles = createStyles(colors);
 
   const handleLoadMore = () => {
-    const currentCount = displayedSubjects.length;
-    const newCount = Math.min(currentCount + 8, allSubjects.length);
-    setDisplayedSubjects(allSubjects.slice(0, newCount));
+    setVisibleSubjectsCount((prevCount) => prevCount + SUBJECTS_PER_LOAD);
   };
 
   const handleLoadMoreLibrary = () => {
-    const currentCount = displayedLibrarySubjects.length;
-    const newCount = Math.min(currentCount + 4, courseLibrarySubjects.length);
-    setDisplayedLibrarySubjects(courseLibrarySubjects.slice(0, newCount));
+    setVisibleLibraryCount((prevCount) => prevCount + SUBJECTS_PER_LOAD);
   };
 
-  const renderSubjectCard = (subject: any, index: number) => {
-    const IconComponent = iconMap[subject.icon];
+  const handleCoursePress = (course: Course) => {
+    // Navigate to course details screen with the course ID
+    router.push({
+      pathname: "/course/course-details",
+      params: { 
+        courseId: course.id.toString(),
+        courseName: course.name
+      }
+    });
+  };
+
+  const renderCourseCard = (course: Course, index: number) => {
+    // Use Code icon as default for all courses
+    const IconComponent = iconMap["Code"] || Code;
     return (
       <TouchableOpacity
-        key={index}
+        key={course.id}
         style={[
           styles.subjectCard,
           { backgroundColor: colors.card, borderColor: colors.border }
         ]}
+        onPress={() => handleCoursePress(course)}
+        activeOpacity={0.7}
       >
-        {IconComponent && <IconComponent size={24} color={colors.foreground} />}
-        <Text style={[styles.subjectName, { color: colors.foreground }]}>{subject.name}</Text>
+        <View style={styles.iconContainer}>
+          {IconComponent && <IconComponent size={24} color={colors.foreground} />}
+        </View>
+        <Text style={[styles.subjectName, { color: colors.foreground }]} numberOfLines={2} ellipsizeMode="tail">
+          {course.name}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -171,32 +176,52 @@ export default function CourseTabs() {
 
         {activeTab === "currently-studying" && (
           <View style={styles.tabContent}>
-            <View style={styles.subjectsGrid}>
-              {displayedSubjects.map((subject, index) => renderSubjectCard(subject, index))}
-            </View>
-            {displayedSubjects.length < allSubjects.length && (
-              <View style={styles.loadMoreContainer}>
-                <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
-                  <Text style={[styles.loadMoreText, { color: colors.yellow }]}>load more</Text>
-                  <ArrowRight size={16} color={colors.yellow} />
-                </TouchableOpacity>
+            {subjectsToDisplay.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                  No courses currently being studied
+                </Text>
               </View>
+            ) : (
+              <>
+                <View style={styles.subjectsGrid}>
+                  {subjectsToDisplay.map((course: Course, index: number) => renderCourseCard(course, index))}
+                </View>
+                {hasMoreSubjects && (
+                  <View style={styles.loadMoreContainer}>
+                    <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+                      <Text style={[styles.loadMoreText, { color: colors.yellow }]}>load more</Text>
+                      <ArrowRight size={16} color={colors.yellow} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
 
         {activeTab === "course-library" && (
           <View style={styles.tabContent}>
-            <View style={styles.subjectsGrid}>
-              {displayedLibrarySubjects.map((subject, index) => renderSubjectCard(subject, index))}
-            </View>
-            {displayedLibrarySubjects.length < courseLibrarySubjects.length && (
-              <View style={styles.loadMoreContainer}>
-                <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMoreLibrary}>
-                  <Text style={[styles.loadMoreText, { color: colors.yellow }]}>load more</Text>
-                  <ArrowRight size={16} color={colors.yellow} />
-                </TouchableOpacity>
+            {libraryToDisplay.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                  No courses in library
+                </Text>
               </View>
+            ) : (
+              <>
+                <View style={styles.subjectsGrid}>
+                  {libraryToDisplay.map((course: Course, index: number) => renderCourseCard(course, index))}
+                </View>
+                {hasMoreLibrary && (
+                  <View style={styles.loadMoreContainer}>
+                    <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMoreLibrary}>
+                      <Text style={[styles.loadMoreText, { color: colors.yellow }]}>load more</Text>
+                      <ArrowRight size={16} color={colors.yellow} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
@@ -251,22 +276,31 @@ const createStyles = (colors: any) => StyleSheet.create({
   subjectsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 8,
   },
   subjectCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 16,
     borderWidth: 1,
     borderRadius: 8,
-    width: '48%',
+    width: '47%',
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 80,
   },
   subjectName: {
     fontSize: 14,
     fontWeight: '500',
-    marginLeft: 12,
+    marginLeft: 0,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   loadMoreContainer: {
     marginTop: 36,
@@ -283,5 +317,23 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 8,
     textTransform: 'lowercase',
+  },
+  iconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

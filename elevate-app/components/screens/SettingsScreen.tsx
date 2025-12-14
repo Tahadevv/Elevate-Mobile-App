@@ -11,7 +11,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 
 export default function SettingsScreen() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({

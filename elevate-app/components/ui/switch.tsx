@@ -1,10 +1,10 @@
 import * as React from "react";
 import {
-  TouchableOpacity,
-  View,
-  StyleSheet,
-  ViewStyle,
-  Animated,
+    Animated,
+    StyleSheet,
+    TouchableOpacity,
+    View,
+    ViewStyle,
 } from "react-native";
 
 export interface SwitchProps {
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   switch: {
     height: 20,
     width: 36,
-    borderRadius: 10,
+    borderRadius: 2,
     backgroundColor: "#d1d5db",
     padding: 2,
     justifyContent: "center",
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   thumb: {
     height: 16,
     width: 16,
-    borderRadius: 8,
+    borderRadius: 2,
     backgroundColor: "white",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },

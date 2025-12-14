@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import { CheckIcon, XIcon, ChevronDownIcon, ChevronUpIcon, Flag, Check, X, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { CheckIcon, XIcon, ChevronDownIcon, ChevronUpIcon, Flag, Check, X, ChevronRight, ChevronUp, ChevronDown } from "lucide-react-native";
 
 // Define question type
 type QuestionStatus = "correct" | "incorrect" | "flagged" | "skipped";

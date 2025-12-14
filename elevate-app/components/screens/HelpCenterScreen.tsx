@@ -22,7 +22,7 @@ export default function HelpCenterScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState("technical");
   const [formData, setFormData] = useState({
     email: "",

@@ -120,7 +120,7 @@ CardFooter.displayName = "CardFooter";
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 2,
     borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

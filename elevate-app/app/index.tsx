@@ -1,28 +1,41 @@
-"use client"
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import OnboardingFlow from '../components/screens/OnboardingFlow';
-import { ThemeProvider } from '../components/theme-provider';
-import Home from './home';
+import { useRouter } from 'expo-router';
+import { useSelector } from 'react-redux';
+import SplashScreen from '@/components/screens/SplashScreen';
 
 export default function App() {
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
+  const router = useRouter();
+  const { isAuthenticated, token } = useSelector((state: any) => state.auth);
 
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
+  const handleSplashComplete = () => {
+    setShowSplash(false);
   };
 
-  return (
-    <ThemeProvider>
-      {showOnboarding ? (
-        <View style={styles.container}>
-          <OnboardingFlow onComplete={handleOnboardingComplete} />
-        </View>
-      ) : (
-        <Home />
-      )}
-    </ThemeProvider>
-  );
+  useEffect(() => {
+    if (!showSplash) {
+      // After splash, check authentication status
+      if (isAuthenticated && token) {
+        // User is authenticated, navigate to dashboard (home page)
+        router.replace('/dashboard');
+      } else {
+        // User is not authenticated, navigate to login
+        router.replace('/auth/login');
+      }
+    }
+  }, [showSplash, isAuthenticated, token]);
+
+  if (showSplash) {
+    return (
+      <View style={styles.container}>
+        <SplashScreen onComplete={handleSplashComplete} />
+      </View>
+    );
+  }
+
+  // This will be replaced by navigation, but we need to return something
+  return null;
 }
 
 const styles = StyleSheet.create({
