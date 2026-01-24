@@ -5,7 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { useColors, useTheme } from '../../../../components/theme-provider';
 import { CircularProgressWithLabel } from '../../../../components/ui/CircularProgress';
-import { DotLoader } from '../../../../components/ui/dot-loader';
+import { PremiumLoader } from '../../../../components/ui/premium-loader';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchTestAnalytics } from '../../../../store/slices/analyticsSlice';
 
@@ -231,9 +231,15 @@ export default function TestAnalyticsScreen() {
         };
       });
 
-      setQuestions(transformedQuestions);
+      setQuestions(prevQuestions => {
+        // Only update if questions actually changed to prevent infinite loops
+        if (JSON.stringify(prevQuestions) === JSON.stringify(transformedQuestions)) {
+          return prevQuestions;
+        }
+        return transformedQuestions;
+      });
     }
-  }, [analytics]);
+  }, [analytics?.questions, analytics?.progress]);
 
   // Calculate statistics from API data
   const questionsData = analytics?.questions as APIQuestionsResponse | null;
@@ -287,9 +293,7 @@ export default function TestAnalyticsScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color={colors.primary} text="Loading test results..." />
-        </View>
+        <PremiumLoader text="Loading test results..." size="large" />
       </View>
     );
   }
@@ -333,6 +337,7 @@ export default function TestAnalyticsScreen() {
 
           {/* Accuracy and Answered Section */}
           <View style={styles.accuracySection}>
+            <View style={styles.accuracyItem}>
             <CircularProgressWithLabel
               value={correctCount}
               max={totalQuestions}
@@ -343,6 +348,7 @@ export default function TestAnalyticsScreen() {
               textColor={colors.foreground}
               labelColor={colors.muted}
             />
+            </View>
             
             <View style={styles.accuracyItem}>
               <Text style={[styles.accuracyLabel, { color: colors.muted }]}>Answered</Text>
@@ -370,16 +376,13 @@ export default function TestAnalyticsScreen() {
             {/* Legend */}
             <View style={styles.legend}>
               {chartData.map((item, index) => {
-                const total = chartData.reduce((sum, data) => sum + data.value, 0);
-                const percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
-                
                 return (
                   <View key={index} style={styles.legendItem}>
                     <View style={[styles.legendIcon, { backgroundColor: item.color }]}>
                       {item.icon}
                     </View>
                     <Text style={[styles.legendText, { color: colors.foreground }]}>
-                      {percentage}%
+                      {item.label.toLowerCase()} {item.value}
                     </Text>
                   </View>
                 );
@@ -458,10 +461,6 @@ export default function TestAnalyticsScreen() {
                   </View>
                 </View>
 
-                {/* Question Text */}
-                <Text style={[styles.questionText, { color: colors.foreground }]}>
-                  {question.text}
-                </Text>
 
                 {/* Explanation Content */}
                 {openExplanations[question.id] && (
@@ -548,6 +547,8 @@ const styles = StyleSheet.create({
   },
   accuracySection: {
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
     gap: 40,
     marginBottom: 32,
   },
@@ -609,11 +610,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   questionHeader: {
     flexDirection: 'row',

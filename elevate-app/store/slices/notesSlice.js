@@ -117,7 +117,16 @@ const notesSlice = createSlice({
       })
       .addCase(fetchNotes.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.notes = action.payload;
+        // Transform API response from snake_case to camelCase
+        state.notes = action.payload.map(note => ({
+          id: String(note.id),
+          title: note.title || '',
+          content: note.content || '',
+          createdAt: note.created_at || note.createdAt || '',
+          updatedAt: note.updated_at || note.updatedAt || '',
+          isEdited: note.updated_at && note.created_at && 
+                    new Date(note.updated_at).getTime() !== new Date(note.created_at).getTime()
+        }));
         state.error = null;
       })
       .addCase(fetchNotes.rejected, (state, action) => {
@@ -133,7 +142,16 @@ const notesSlice = createSlice({
       })
       .addCase(createNote.fulfilled, (state, action) => {
         state.operationLoading = false;
-        state.notes.unshift(action.payload);
+        // Transform API response from snake_case to camelCase
+        const newNote = {
+          id: String(action.payload.id),
+          title: action.payload.title || '',
+          content: action.payload.content || '',
+          createdAt: action.payload.created_at || action.payload.createdAt || '',
+          updatedAt: action.payload.updated_at || action.payload.updatedAt || '',
+          isEdited: false
+        };
+        state.notes.unshift(newNote);
         state.error = null;
       })
       .addCase(createNote.rejected, (state, action) => {
@@ -149,9 +167,18 @@ const notesSlice = createSlice({
       })
       .addCase(updateNote.fulfilled, (state, action) => {
         state.operationLoading = false;
-        const index = state.notes.findIndex(note => note.id === action.payload.id);
+        const index = state.notes.findIndex(note => note.id === String(action.payload.id));
         if (index !== -1) {
-          state.notes[index] = action.payload;
+          // Transform API response from snake_case to camelCase
+          state.notes[index] = {
+            id: String(action.payload.id),
+            title: action.payload.title || '',
+            content: action.payload.content || '',
+            createdAt: action.payload.created_at || action.payload.createdAt || state.notes[index].createdAt,
+            updatedAt: action.payload.updated_at || action.payload.updatedAt || '',
+            isEdited: action.payload.updated_at && action.payload.created_at && 
+                      new Date(action.payload.updated_at).getTime() !== new Date(action.payload.created_at).getTime()
+          };
         }
         state.error = null;
       })

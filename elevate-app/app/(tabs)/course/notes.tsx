@@ -1,8 +1,10 @@
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import { MoreHorizontal, Plus, Search, X } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useColors } from '../../../components/theme-provider';
+import { PremiumLoader } from '../../../components/ui/premium-loader';
 import API_CONFIG from '../../../config.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { createNote, deleteNote, fetchNotes, updateNote } from '../../../store/slices/notesSlice';
@@ -19,9 +21,18 @@ export interface Note {
 
 // Utility functions
 function formatDate(dateString: string): string {
+  if (!dateString) {
+    return "Invalid date";
+  }
+
   const date = new Date(dateString);
 
-  // Format: "13rd, June"
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  // Format: "25th, November"
   const day = date.getDate();
   const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -32,8 +43,8 @@ function formatDate(dateString: string): string {
   // Add ordinal suffix
   let suffix = "th";
   if (day === 1 || day === 21 || day === 31) suffix = "st";
-  if (day === 2 || day === 22) suffix = "nd";
-  if (day === 3 || day === 23) suffix = "rd";
+  else if (day === 2 || day === 22) suffix = "nd";
+  else if (day === 3 || day === 23) suffix = "rd";
 
   return `${day}${suffix}, ${month}`;
 }
@@ -166,6 +177,15 @@ export default function NotesScreen() {
     setShowDropdown(showDropdown === noteId ? null : noteId);
   };
 
+  // Show loading state centered
+  if (isLoading && notes.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <PremiumLoader text="Loading notes..." size="large" />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       
@@ -244,7 +264,7 @@ export default function NotesScreen() {
                 
                 <View style={[styles.noteFooter, { borderTopColor: colors.border }]}>
                   <Text style={[styles.noteDate, { color: colors.muted }]}>
-                    {note.isEdited ? "Edited" : "Created"} at {formatDate(note.updatedAt)}
+                    {note.isEdited ? "Edited" : "Created"} at {formatDate(note.isEdited ? note.updatedAt : note.createdAt)}
                   </Text>
                 </View>
 
@@ -282,6 +302,11 @@ export default function NotesScreen() {
         onRequestClose={() => setIsModalOpen(false)}
       >
         <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
           <View style={[styles.modalContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {/* Modal Header */}
             <View style={styles.modalHeader}>
@@ -368,13 +393,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100%',
+  },
   mainContent: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 20,
   },
   header: {
     marginBottom: 32,
@@ -447,11 +478,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     borderWidth: 1,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     position: 'relative',
   },
   noteHeader: {
@@ -492,11 +518,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     minWidth: 100,
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
   },
   dropdownItem: {
     paddingHorizontal: 12,
@@ -513,11 +534,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
   },
   tab: {
     alignItems: "center",
@@ -536,14 +552,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
-    width: '100%',
-    borderRadius: 2,
+    width: '90%',
+    maxWidth: 500,
+    marginHorizontal: 20,
+    borderRadius: 4,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -577,7 +590,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 4,
     fontSize: 16,
   },
   textArea: {
@@ -585,7 +598,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 4,
     fontSize: 16,
     minHeight: 100,
     textAlignVertical: 'top',
@@ -602,7 +615,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 2,
+    borderRadius: 4,
     borderWidth: 1,
   },
   cancelButtonText: {
@@ -612,7 +625,7 @@ const styles = StyleSheet.create({
   createButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 2,
+    borderRadius: 4,
   },
   createButtonText: {
     fontSize: 16,

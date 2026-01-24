@@ -16,7 +16,7 @@ import { useColors } from '../../components/theme-provider';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { DotLoader } from '../../components/ui/dot-loader';
+import { PremiumLoader } from '../../components/ui/premium-loader';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchGeneralAnnouncements } from '../../store/slices/generalAnnouncementsSlice';
 
@@ -86,7 +86,6 @@ export default function AnnouncementsScreen({ onNavigate }: AnnouncementsScreenP
     }
   }, [announcements]);
   
-  const [filter, setFilter] = useState<"all" | "unread" | "urgent">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('announcements');
   const colors = useColors();
@@ -170,13 +169,8 @@ export default function AnnouncementsScreen({ onNavigate }: AnnouncementsScreenP
   // Calculate unread count from announcements
   const unreadCount = announcements.filter((a: any) => !a.isRead).length;
 
-  const filteredAnnouncements = announcements.filter((announcement: any) => {
-    if (filter === "unread") return !announcement.isRead;
-    if (filter === "urgent") return announcement.type === "urgent";
-    return true;
-  });
-
-  const urgentCount = announcements.filter((a: any) => a.type === "urgent").length;
+  // Show all announcements (no filtering)
+  const filteredAnnouncements = announcements;
 
   const styles = createStyles(colors, insets);
 
@@ -190,7 +184,11 @@ export default function AnnouncementsScreen({ onNavigate }: AnnouncementsScreenP
       
       {/* Main Content */}
       <View style={styles.mainContent}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          contentContainerStyle={filteredAnnouncements.length === 0 && !isLoading ? styles.scrollViewContentEmpty : undefined}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>
@@ -216,56 +214,11 @@ export default function AnnouncementsScreen({ onNavigate }: AnnouncementsScreenP
             </View>
           </View>
 
-          {/* Filter Tabs */}
-          <View style={styles.filterTabs}>
-            <TouchableOpacity
-              style={[
-                styles.filterTab,
-                filter === "all" && styles.activeFilterTab
-              ]}
-              onPress={() => setFilter("all")}
-            >
-              <Text style={[
-                styles.filterTabText,
-                { color: filter === "all" ? colors.background : colors.foreground }
-              ]}>
-                All ({announcements.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterTab,
-                filter === "unread" && styles.activeFilterTab
-              ]}
-              onPress={() => setFilter("unread")}
-            >
-              <Text style={[
-                styles.filterTabText,
-                { color: filter === "unread" ? colors.background : colors.foreground }
-              ]}>
-                Unread ({unreadCount})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterTab,
-                filter === "urgent" && styles.activeFilterTab
-              ]}
-              onPress={() => setFilter("urgent")}
-            >
-              <Text style={[
-                styles.filterTabText,
-                { color: filter === "urgent" ? colors.background : colors.foreground }
-              ]}>
-                Urgent ({urgentCount})
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Loading State */}
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <DotLoader size="large" color={colors.primary} text="Loading announcements..." />
+              <PremiumLoader text="Loading announcements..." size="large" />
             </View>
           )}
 
@@ -338,19 +291,16 @@ export default function AnnouncementsScreen({ onNavigate }: AnnouncementsScreenP
           )}
 
           {!isLoading && filteredAnnouncements.length === 0 && (
-            <View style={styles.emptyState}>
-              <Megaphone size={48} color={colors.muted} />
-              <Text style={[styles.emptyStateTitle, { color: colors.foreground }]}>
-                No announcements found
-              </Text>
-              <Text style={[styles.emptyStateText, { color: colors.mutedForeground }]}>
-                {filter === "all" 
-                  ? "There are no announcements at the moment."
-                  : filter === "unread" 
-                  ? "You've read all announcements."
-                  : "There are no urgent announcements."
-                }
-              </Text>
+            <View style={styles.emptyStateContainer}>
+              <View style={styles.emptyState}>
+                <Megaphone size={48} color={colors.muted} />
+                <Text style={[styles.emptyStateTitle, { color: colors.foreground }]}>
+                  No announcements found
+                </Text>
+                <Text style={[styles.emptyStateText, { color: colors.mutedForeground }]}>
+                  There are no announcements at the moment.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -373,6 +323,10 @@ function createStyles(colors: any, insets: any) {
     scrollView: {
       flex: 1,
       paddingBottom: 32 + insets.bottom, // Account for semi bottom bar height
+    },
+    scrollViewContentEmpty: {
+      flexGrow: 1,
+      justifyContent: 'center',
     },
     header: {
       flexDirection: 'row',
@@ -411,27 +365,6 @@ function createStyles(colors: any, insets: any) {
     markAllButtonText: {
       fontSize: 12,
       fontWeight: '600',
-    },
-    filterTabs: {
-      flexDirection: 'row',
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-      gap: 12,
-    },
-    filterTab: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    activeFilterTab: {
-      backgroundColor: colors.yellow,
-      borderColor: colors.yellow,
-    },
-    filterTabText: {
-      fontSize: 14,
-      fontWeight: '500',
     },
     announcementsList: {
       paddingHorizontal: 24,
@@ -507,6 +440,12 @@ function createStyles(colors: any, insets: any) {
       height: 28,
       paddingHorizontal: 8,
     },
+    emptyStateContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: 400,
+    },
     emptyState: {
       alignItems: 'center',
       paddingVertical: 48,
@@ -527,9 +466,10 @@ function createStyles(colors: any, insets: any) {
       height: 80, // Increased padding to ensure content is visible above semi bottom bar
     },
     loadingContainer: {
+      flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      paddingVertical: 48,
+      minHeight: '100%',
     },
     loadingText: {
       marginTop: 16,

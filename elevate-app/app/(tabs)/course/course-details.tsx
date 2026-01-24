@@ -12,7 +12,7 @@ import {
     View,
 } from 'react-native';
 import { useColors, useTheme } from '../../../components/theme-provider';
-import { DotLoader } from '../../../components/ui/dot-loader';
+import { PremiumLoader } from '../../../components/ui/premium-loader';
 import API_CONFIG from '../../../config.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchCourseDetails } from '../../../store/slices/courseDetailsSlice';
@@ -59,15 +59,17 @@ export default function CoursePage() {
   const { isDark } = useTheme();
   const isMobile = width < 768;
 
+  // Show loading state centered
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <PremiumLoader text="Loading course details..." size="large" />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-      {/* Loading State */}
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color={colors.primary} text="Loading course details..." />
-        </View>
-      )}
-
       {/* Content */}
       {!isLoading && (
         <View style={[styles.content, isMobile && styles.mobileContent]}>
@@ -351,11 +353,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     padding: 24,
     borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   tabTitle: {
     fontSize: 16,
@@ -417,11 +414,6 @@ const styles = StyleSheet.create({
   },
   sidebarContent: {
     borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
     padding: 16,
   },
   sidebarTitle: {
@@ -447,6 +439,9 @@ const styles = StyleSheet.create({
   chapterTitle: {
     fontSize: 14,
     fontWeight: '700',
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 8,
   },
   chapterContent: {
     padding: 12,
@@ -458,6 +453,12 @@ const styles = StyleSheet.create({
   subItem: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  loadingScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100%',
   },
   loadingContainer: {
     flex: 1,

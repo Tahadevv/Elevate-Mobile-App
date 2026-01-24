@@ -43,7 +43,6 @@ const Card = React.forwardRef<View, CardProps>(
           { 
             backgroundColor: colors.card,
             borderColor: colors.border,
-            shadowColor: colors.foreground 
           },
           style
         ]}
@@ -122,10 +121,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 2,
     borderWidth: 1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   cardHeader: {
     padding: 24,

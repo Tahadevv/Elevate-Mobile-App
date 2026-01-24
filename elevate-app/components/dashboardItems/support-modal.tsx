@@ -1,9 +1,11 @@
+import { BlurView } from 'expo-blur';
 import { MessageSquare, X } from 'lucide-react-native';
 import React, { createContext, useContext, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,9 +16,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useColors } from '../theme-provider';
-import API_CONFIG, { buildURL } from '../../config.api';
+import API_CONFIG from '../../config.api';
 import { useAppSelector } from '../../store/hooks';
+import { useColors } from '../theme-provider';
 
 const { width } = Dimensions.get('window');
 
@@ -146,12 +148,28 @@ export const SupportModal = () => {
       transparent={true}
       onRequestClose={closeModal}
     >
-      <View style={styles.overlay}>
+      <TouchableOpacity
+        style={styles.overlay}
+        activeOpacity={1}
+        onPress={() => {
+          Keyboard.dismiss();
+          closeModal();
+        }}
+      >
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+        )}
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             {/* Header */}
             <View style={[styles.header, { borderBottomColor: colors.border }]}>
               <View style={styles.titleContainer}>
@@ -292,9 +310,10 @@ export const SupportModal = () => {
                 </TouchableOpacity>
               </View>
             </ScrollView>
-          </View>
+            </View>
+          </TouchableOpacity>
         </KeyboardAvoidingView>
-      </View>
+      </TouchableOpacity>
     </Modal>
   );
 };
@@ -312,10 +331,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    borderRadius: 12,
+    borderRadius: 4,
     width: width * 0.9,
     maxWidth: 500,
-    maxHeight: '80%',
+    minHeight: '85%',
+    
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -341,7 +361,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-    borderRadius: 20,
+    borderRadius: 4,
   },
   description: {
     fontSize: 12,
@@ -365,7 +385,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 4,
     padding: 12,
     fontSize: 12,
   },
@@ -383,7 +403,7 @@ const styles = StyleSheet.create({
   topicButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 4,
     borderWidth: 1,
   },
   topicButtonText: {
@@ -392,7 +412,7 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from 'expo-blur';
 import React from "react";
 import {
   Dimensions,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,6 +28,11 @@ export function NotificationModal({ open, onOpenChange }: NotificationModalProps
       onRequestClose={() => onOpenChange(false)}
     >
       <View style={styles.overlay}>
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+        )}
         <View style={styles.modalContent}>
           <View style={styles.header}>
             <Text style={styles.title}>Notifications</Text>
@@ -117,7 +124,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 4,
     width: width * 0.9,
     maxWidth: 400,
     maxHeight: "80%",
@@ -142,7 +149,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-    borderRadius: 20,
+    borderRadius: 4,
   },
   notificationsContainer: {
     padding: 16,
@@ -152,7 +159,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     marginBottom: 16,
@@ -163,7 +170,7 @@ const styles = StyleSheet.create({
   achievementIcon: {
     backgroundColor: "#f3e8ff",
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 4,
     width: 40,
     height: 40,
     alignItems: "center",
@@ -172,7 +179,7 @@ const styles = StyleSheet.create({
   homeworkIcon: {
     backgroundColor: "#d1fae5",
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 4,
     width: 40,
     height: 40,
     alignItems: "center",
@@ -214,7 +221,7 @@ const styles = StyleSheet.create({
   },
   flashcardCard: {
     backgroundColor: "#f9fafb",
-    borderRadius: 8,
+    borderRadius: 4,
     padding: 16,
     marginBottom: 16,
   },

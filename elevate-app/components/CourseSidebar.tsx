@@ -1,4 +1,6 @@
-import { usePathname } from 'expo-router';
+import { logout } from '@/store/slices/authSlice';
+import { BlurView } from 'expo-blur';
+import { usePathname, useRouter } from 'expo-router';
 import {
   Bell,
   BookMarked,
@@ -15,8 +17,9 @@ import {
   Target,
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
 import Logo from '../assets/images/logo.svg';
 import { useTheme } from './theme-provider';
 import { ThemeToggle } from './theme-toggle';
@@ -61,6 +64,7 @@ export default function CourseSidebar({ onNavigate, courseId, isOpen: externalIs
   const { colors, isDark } = useTheme();
   const [isOpen, setIsOpen] = useState(externalIsOpen ?? true);
   const [isMobile, setIsMobile] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const [openSections, setOpenSections] = useState({
     Course: true,
     tools: true,
@@ -68,8 +72,10 @@ export default function CourseSidebar({ onNavigate, courseId, isOpen: externalIs
     results: true,
   });
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
-  const styles = createStyles(insets);
+  const styles = createStyles(insets, colors);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -108,6 +114,32 @@ export default function CourseSidebar({ onNavigate, courseId, isOpen: externalIs
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleLogout = async () => {
+    console.log('========================================');
+    console.log('🚪 LOGOUT INITIATED');
+    console.log('========================================');
+    
+    try {
+      // Dispatch logout action to clear Redux state
+      await dispatch(logout() as any);
+      
+      console.log('✅ Logout successful - Clearing session');
+      console.log('Navigating to login screen...');
+      console.log('========================================');
+      
+      // Close modals
+      setLogoutOpen(false);
+      
+      // Navigate to login screen
+      setTimeout(() => {
+        router.replace('/auth/login');
+      }, 100);
+    } catch (error) {
+      console.log('❌ Logout error:', error);
+      console.log('========================================');
+    }
+  };
+
   const iconItems: IconItem[] = [
     { icon: BookOpen, label: "Home", link: "/dashboard", color: "#eab308" },
     { icon: Megaphone, label: "Announcements", link: "/dashboard/announcements", color: "#ef4444", hasSeparator: true },
@@ -144,7 +176,7 @@ export default function CourseSidebar({ onNavigate, courseId, isOpen: externalIs
           color: "#10b981",
           subItems: [
             { label: "Take Quiz", link: "/course/pages/exam" },
-            { label: "Quiz Analytics", link: "/course/result/stats" },
+            { label: "Quiz Analytics", link: "/course/pages/quiz-analytics" },
           ]
         },
         {
@@ -294,7 +326,10 @@ export default function CourseSidebar({ onNavigate, courseId, isOpen: externalIs
 
           {/* Logout Icon at Bottom */}
           <View style={styles.logoutSection}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => setLogoutOpen(true)}
+            >
               <LogOut size={20} color={colors.muted} />
             </TouchableOpacity>
           </View>
@@ -352,19 +387,48 @@ export default function CourseSidebar({ onNavigate, courseId, isOpen: externalIs
         </View>
       </View>
 
-      {/* Overlay for mobile */}
-      {isMobile && isOpen && (
-        <TouchableOpacity
-          style={styles.overlay}
-          onPress={toggleSidebar}
-          activeOpacity={1}
-        />
-      )}
+      {/* Logout Confirmation Modal - Full Screen Centered */}
+      <Modal
+        visible={logoutOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLogoutOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Confirm Logout</Text>
+              <Text style={[styles.modalDescription, { color: colors.foreground }]}>
+                Are you sure you want to log out of your account?
+              </Text>
+            </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.cancelButton, { borderColor: colors.border }]} 
+                onPress={() => setLogoutOpen(false)}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.logoutConfirmButton}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutConfirmButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
 
-const createStyles = (insets: any) => StyleSheet.create({
+const createStyles = (insets: any, colors: any) => StyleSheet.create({
   mobileToggle: {
     position: 'absolute',
     top: insets.top + 16,
@@ -382,7 +446,7 @@ const createStyles = (insets: any) => StyleSheet.create({
     width: 300,
     backgroundColor: 'transparent',
     flexDirection: 'row',
-    paddingTop: insets.top,
+    paddingTop: 0,
   },
   sidebarScrollView: {
     flex: 1,
@@ -440,6 +504,7 @@ const createStyles = (insets: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
+    paddingTop: 16 + insets.top,
   },
   logo: {
     width: 100,
@@ -491,7 +556,7 @@ const createStyles = (insets: any) => StyleSheet.create({
     backgroundColor: '#ec4899',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 4,
   },
   badgeText: {
     color: '#ffffff',
@@ -524,5 +589,59 @@ const createStyles = (insets: any) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: Dimensions.get('window').width,
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 4,
+    padding: 24,
+    width: Dimensions.get('window').width - 40,
+    maxWidth: 500,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalHeader: {
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  modalDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  cancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  logoutConfirmButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    backgroundColor: colors.destructive,
+  },
+  logoutConfirmButtonText: {
+    color: colors.destructiveForeground,
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Dimensions,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useColors } from '../../components/theme-provider';
 
@@ -283,11 +283,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     padding: 24,
     borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   tabTitle: {
     fontSize: 16,
@@ -376,6 +371,9 @@ const styles = StyleSheet.create({
   chapterTitle: {
     fontSize: 14,
     fontWeight: 'bold',
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 8,
   },
   chapterContent: {
     padding: 12,

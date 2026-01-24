@@ -1,11 +1,10 @@
-import { Eye, EyeOff } from 'lucide-react-native';
+import { DotLoader } from '@/components/ui/dot-loader';
 import { useRouter } from 'expo-router';
+import { Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
-  Linking,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -14,25 +13,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import API_CONFIG, { buildURL, getAuthHeaders } from '../../config.api';
+import { ElevateExamsTitle } from '../../components/pages/ElevateExamsTitle';
 import { useColors } from '../../components/theme-provider';
-import { Highlight } from '../../components/pages/Highlight';
-import { login, setToken } from '../../store/slices/authSlice';
-import { DotLoader } from '@/components/ui/dot-loader';
+import { login } from '../../store/slices/authSlice';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showGoogleWebView, setShowGoogleWebView] = useState(false);
-  const [googleAuthUrl, setGoogleAuthUrl] = useState<string | null>(null);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const colors = useColors();
   const router = useRouter();
   const dispatch = useDispatch();
   const { isLoading, error } = useSelector((state: any) => state.auth);
+  const insets = useSafeAreaInsets();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -55,108 +50,16 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      setIsGoogleLoading(true);
-      const redirectUri = 'https://elevate-exam-website-api.vercel.app/google_callback';
-      const authUrl = `${buildURL(API_CONFIG.auth.googleOAuth)}?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-      const response = await fetch(authUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get authorization URL');
-      }
-
-      const data = await response.json();
-      if (data.authorization_url) {
-        setGoogleAuthUrl(data.authorization_url);
-        setShowGoogleWebView(true);
-      } else {
-        throw new Error('No authorization URL received');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to initiate Google sign-in');
-      setIsGoogleLoading(false);
-    }
-  };
-
-  const handleGoogleCallback = async (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      const code = urlObj.searchParams.get('code');
-      const state = urlObj.searchParams.get('state');
-      const error = urlObj.searchParams.get('error');
-
-      if (error) {
-        Alert.alert('Error', 'Google authentication failed');
-        setShowGoogleWebView(false);
-        setIsGoogleLoading(false);
-        return;
-      }
-
-      if (!code || !state) {
-        Alert.alert('Error', 'Invalid callback from Google');
-        setShowGoogleWebView(false);
-        setIsGoogleLoading(false);
-        return;
-      }
-
-      setShowGoogleWebView(false);
-      const callbackUrl = `${buildURL(API_CONFIG.auth.googleOAuth)}?state=${encodeURIComponent(state)}&code=${encodeURIComponent(code)}`;
-
-      const response = await fetch(callbackUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.access) {
-        const token = data.access.replace('Bearer ', '').trim();
-        dispatch(setToken({ token, user: null }));
-
-        try {
-          const userResponse = await fetch(buildURL(API_CONFIG.auth.getUserProfile), {
-            method: 'GET',
-            headers: getAuthHeaders(token),
-          });
-
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            dispatch(setToken({ token, user: userData }));
-            setTimeout(() => {
-              router.replace('/dashboard');
-            }, 100);
-          } else {
-            setTimeout(() => {
-              router.replace('/dashboard');
-            }, 100);
-          }
-        } catch (userErr) {
-          setTimeout(() => {
-            router.replace('/dashboard');
-          }, 100);
-        }
-      } else {
-        Alert.alert('Error', data.detail || data.message || 'Google authentication failed');
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to complete Google sign-in');
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
-
   return (
+    <SafeAreaView 
+      style={[styles.container, { backgroundColor: colors.background }]} 
+      edges={['top', 'left', 'right']}
+    >
+      <View style={[styles.topTitleContainer, { paddingTop: insets.top + 8 }]}>
+        <ElevateExamsTitle />
+      </View>
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
+        style={styles.keyboardView}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -166,9 +69,10 @@ export default function LoginScreen() {
         <View style={styles.formContainer}>
           <View style={[styles.card, { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>
-                Sign In to <Highlight>Elevate Exams</Highlight>
-              </Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>Sign In to </Text>
+                <ElevateExamsTitle size={0.625} />
+              </View>
               <Text style={styles.subtitle}>
                 Don't have an account?{' '}
                 <Text
@@ -256,70 +160,11 @@ export default function LoginScreen() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-              disabled={isGoogleLoading}
-            >
-              {isGoogleLoading ? (
-                <DotLoader size="small" color="#1f2937" />
-              ) : (
-                <Text style={styles.googleButtonText}>Sign In with Google</Text>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      {/* Google OAuth WebView Modal */}
-      <Modal
-        visible={showGoogleWebView}
-        animationType="slide"
-        onRequestClose={() => {
-          setShowGoogleWebView(false);
-          setIsGoogleLoading(false);
-        }}
-      >
-        <View style={styles.webViewContainer}>
-          <View style={[styles.webViewHeader, { borderBottomColor: colors.border }]}>
-            <TouchableOpacity
-              style={styles.webViewCloseButton}
-              onPress={() => {
-                setShowGoogleWebView(false);
-                setIsGoogleLoading(false);
-              }}
-            >
-              <Text style={styles.webViewCloseText}>✕</Text>
-            </TouchableOpacity>
-            <Text style={[styles.webViewTitle, { color: colors.foreground }]}>
-              Sign in with Google
-            </Text>
-            <View style={{ width: 24 }} />
-          </View>
-          {googleAuthUrl && (
-            <WebView
-              source={{ uri: googleAuthUrl }}
-              onNavigationStateChange={(navState) => {
-                const url = navState.url;
-                if (url.includes('google_callback') || url.includes('code=')) {
-                  handleGoogleCallback(url);
-                }
-              }}
-              onShouldStartLoadWithRequest={(request) => {
-                const url = request.url;
-                if (url.includes('google_callback') || url.includes('code=')) {
-                  handleGoogleCallback(url);
-                  return false;
-                }
-                return true;
-              }}
-              style={styles.webView}
-            />
-          )}
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -327,11 +172,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
+  topTitleContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    justifyContent: 'center',
-    paddingTop: 80,
+    justifyContent: 'flex-start',
+    paddingTop: '50%',
   },
   formContainer: {
     width: '100%',
@@ -346,11 +203,16 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
@@ -446,47 +308,5 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 16,
     fontWeight: '600',
-  },
-  googleButton: {
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    minHeight: 44,
-  },
-  googleButtonText: {
-    color: '#1f2937',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  webViewContainer: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  webViewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    paddingTop: Platform.OS === 'ios' ? 50 : 12,
-  },
-  webViewCloseButton: {
-    padding: 8,
-  },
-  webViewCloseText: {
-    fontSize: 24,
-    color: '#1f2937',
-  },
-  webViewTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  webView: {
-    flex: 1,
   },
 });

@@ -17,13 +17,26 @@ import mockAssessmentReducer from './slices/mockAssessmentSlice';
 import mockExamReducer from './slices/mockExamSlice';
 import notesReducer from './slices/notesSlice';
 import practiceQuizReducer from './slices/practiceQuizSlice';
+import quizAnalyticsReducer from './slices/quizAnalyticsSlice';
 import userReducer from './slices/userSlice';
 
 // Persist configuration
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['auth', 'user'], // Only persist auth and user state
+  whitelist: [
+    'auth', 
+    'user', 
+    'dashboard', // Includes paidIndustries (paid industries data)
+    'events', // Calendar events
+    'notes', // Notes
+    'flashcards', // Flashcards
+    'practiceQuiz', // Quiz/Practice quiz
+    'mockExam', // Test quiz
+    'mockAssessment', // Test
+    'quizAnalytics', // Quiz analytics
+    'testAnalytics', // Test analytics
+  ],
   blacklist: [], // Add slices you don't want to persist
 };
 
@@ -42,7 +55,8 @@ const rootReducer = combineReducers({
   practiceQuiz: practiceQuizReducer,
   mockExam: mockExamReducer,
   mockAssessment: mockAssessmentReducer,
-  ...analyticsReducer,
+  quizAnalytics: quizAnalyticsReducer,
+  testAnalytics: analyticsReducer.testAnalytics,
 });
 
 // Create persisted reducer

@@ -844,7 +844,7 @@ const createStyles = (colors: any, sidebarOpen: boolean, isMobile: boolean) =>
       padding: 20,
     },
     modalContent: {
-      borderRadius: 16,
+      borderRadius: 4,
       padding: 24,
       width: '100%',
       maxWidth: 500,
@@ -868,7 +868,7 @@ const createStyles = (colors: any, sidebarOpen: boolean, isMobile: boolean) =>
     },
     modalSubscriptionInfo: {
       padding: 16,
-      borderRadius: 8,
+      borderRadius: 4,
       borderWidth: 1,
       marginBottom: 16,
     },
@@ -886,7 +886,7 @@ const createStyles = (colors: any, sidebarOpen: boolean, isMobile: boolean) =>
       alignItems: 'flex-start',
       gap: 12,
       padding: 12,
-      borderRadius: 8,
+      borderRadius: 4,
       borderWidth: 1,
     },
     modalWarningText: {
@@ -911,7 +911,7 @@ const createStyles = (colors: any, sidebarOpen: boolean, isMobile: boolean) =>
       flex: 1,
       paddingVertical: 12,
       paddingHorizontal: 16,
-      borderRadius: 8,
+      borderRadius: 4,
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',

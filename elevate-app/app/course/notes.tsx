@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -30,15 +32,29 @@ export interface Note {
 
 // Utility functions
 function formatDate(dateString: string): string {
+  if (!dateString) {
+    return "Invalid date";
+  }
+
   const date = new Date(dateString);
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
   const day = date.getDate();
-  const month = date.toLocaleString("default", { month: "long" });
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const month = monthNames[date.getMonth()];
 
   // Add ordinal suffix
   let suffix = "th";
   if (day === 1 || day === 21 || day === 31) suffix = "st";
-  if (day === 2 || day === 22) suffix = "nd";
-  if (day === 3 || day === 23) suffix = "rd";
+  else if (day === 2 || day === 22) suffix = "nd";
+  else if (day === 3 || day === 23) suffix = "rd";
 
   return `${day}${suffix}, ${month}`;
 }
@@ -90,6 +106,11 @@ function NoteModal({ isOpen, onClose, onSave, note, isEditing }: NoteModalProps)
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+        )}
         <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
           <View style={styles.modalHeader}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>
@@ -318,7 +339,7 @@ export default function NotesApp() {
               
               <View style={[styles.noteFooter, { borderTopColor: colors.border }]}>
                 <Text style={[styles.noteDate, { color: colors.muted }]}>
-                  {note.isEdited ? "Edited" : "Created"} at {formatDate(note.updatedAt)}
+                  {note.isEdited ? "Edited" : "Created"} at {formatDate(note.isEdited ? note.updatedAt : note.createdAt)}
                 </Text>
               </View>
             </View>
@@ -405,11 +426,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 2,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   noteHeader: {
     flexDirection: 'row',
@@ -447,15 +463,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    width: width - 40,
+    width: width - 60,
+    maxWidth: 500,
     maxHeight: '80%',
-    borderRadius: 2,
+    marginHorizontal: 20,
+    borderRadius: 4,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -472,14 +485,14 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 4,
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
   },
   contentInput: {
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 4,
     padding: 12,
     fontSize: 16,
     marginBottom: 20,
@@ -492,7 +505,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 4,
     padding: 12,
     alignItems: 'center',
   },
@@ -502,7 +515,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    borderRadius: 2,
+    borderRadius: 4,
     padding: 12,
     alignItems: 'center',
   },

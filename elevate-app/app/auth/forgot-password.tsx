@@ -11,10 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ElevateExamsTitle } from '../../components/pages/ElevateExamsTitle';
 import { useColors } from '../../components/theme-provider';
 import { DotLoader } from '../../components/ui/dot-loader';
-import { Highlight } from '../../components/pages/Highlight';
-import API_CONFIG, { buildURL } from '../../config.api';
+import API_CONFIG from '../../config.api';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -23,6 +24,7 @@ export default function ForgotPasswordScreen() {
   const [success, setSuccess] = useState(false);
   const colors = useColors();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleSubmit = async () => {
     if (!email) {
@@ -78,20 +80,28 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <SafeAreaView 
+      style={[styles.container, { backgroundColor: colors.background }]} 
+      edges={['top', 'left', 'right']}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <View style={[styles.topTitleContainer, { paddingTop: insets.top + 8 }]}>
+        <ElevateExamsTitle />
+      </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.formContainer}>
           <View style={[styles.card, { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>
-                Reset password for <Highlight>Elevate Exams</Highlight>
-              </Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>Reset password for </Text>
+                <ElevateExamsTitle size={0.625} />
+              </View>
               <Text style={styles.subtitle}>
                 Enter your email address and we'll send you a secure link to reset your password.
               </Text>
@@ -189,7 +199,8 @@ export default function ForgotPasswordScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -197,11 +208,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
+  topTitleContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    justifyContent: 'center',
-    paddingTop: 80,
+    justifyContent: 'flex-start',
+    paddingTop: '50%',
   },
   formContainer: {
     width: '100%',
@@ -216,11 +239,16 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,

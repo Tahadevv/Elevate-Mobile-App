@@ -22,10 +22,13 @@ import { Select } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { resetSubmission, submitHelpRequest } from '../../store/slices/helpCenterSlice';
+import { fetchUserProfile } from '../../store/slices/userSlice';
 
 export default function HelpCenterScreen() {
   const dispatch = useAppDispatch();
   const { isLoading, error, isSubmitted } = useAppSelector((state: any) => state.helpCenter);
+  const { userProfile } = useAppSelector((state: any) => state.user);
+  const { token } = useAppSelector((state: any) => state.auth);
   
   // Debug API states
   console.log('📊 Help Center State:', { isLoading, error, isSubmitted });
@@ -35,6 +38,7 @@ export default function HelpCenterScreen() {
   const [selectedTopic, setSelectedTopic] = useState("technical");
   const [activeTab, setActiveTab] = useState('help');
   const insets = useSafeAreaInsets();
+  
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -42,6 +46,30 @@ export default function HelpCenterScreen() {
     message: "",
     topic: "technical"
   });
+
+  // Fetch user profile from API (same pattern as account.tsx)
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchUserProfile(token) as any);
+    }
+  }, [token, dispatch]);
+
+  // Update form data when user profile is loaded (same pattern as account.tsx)
+  useEffect(() => {
+    if (userProfile) {
+      setFormData(prev => {
+        // Only update if values actually changed to prevent infinite loops
+        if (prev.name === (userProfile.name || "") && prev.email === (userProfile.email || "")) {
+          return prev;
+        }
+        return {
+          ...prev,
+          name: userProfile.name || "",
+          email: userProfile.email || "",
+        };
+      });
+    }
+  }, [userProfile?.name, userProfile?.email]);
 
   const toggleAccordion = (id: string) => {
     setOpenAccordion(openAccordion === id ? null : id);
@@ -52,9 +80,9 @@ export default function HelpCenterScreen() {
   };
 
   const handleSubmit = async () => {
-    // Validate form data
-    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
-      RNAlert.alert('Error', 'Please fill in all required fields');
+    // Validate form data (name and email are pre-filled, so we only check subject and message)
+    if (!formData.subject || !formData.message) {
+      RNAlert.alert('Error', 'Please fill in subject and message fields');
       return;
     }
     
@@ -75,13 +103,12 @@ export default function HelpCenterScreen() {
   useEffect(() => {
     if (isSubmitted) {
       console.log('✅ Help request submitted successfully!');
-      setFormData({
-        name: "",
-        email: "",
+      setFormData(prev => ({
+        ...prev,
         subject: "",
         message: "",
         topic: "technical"
-      });
+      }));
       // Reset submission state after 3 seconds
       setTimeout(() => {
         dispatch(resetSubmission());
@@ -140,26 +167,6 @@ export default function HelpCenterScreen() {
                       </Alert>
                     ) : (
                       <View style={styles.form}>
-                        <View style={styles.formField}>
-                          <Label>Your Name</Label>
-                          <Input 
-                            placeholder="Enter your name" 
-                            value={formData.name}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
-                          />
-                        </View>
-
-                        <View style={styles.formField}>
-                          <Label>Your Email</Label>
-                          <Input 
-                            placeholder="mk0906145@gmail.com" 
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={formData.email}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, email: text }))}
-                          />
-                        </View>
-
                         <View style={styles.formField}>
                           <Label>Topic</Label>
                           <Select 

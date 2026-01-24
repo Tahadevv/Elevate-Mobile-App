@@ -1,3 +1,5 @@
+import { logout } from "@/store/slices/authSlice";
+import { BlurView } from 'expo-blur';
 import { useRouter } from "expo-router";
 import {
   Bell,
@@ -6,10 +8,12 @@ import {
   LogOut,
   Megaphone,
   Settings,
+  X,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
 import Logo from '../../assets/images/logo.svg';
 import { NotificationModal } from "../shared/notification-modal";
 import { useTheme } from "../theme-provider";
@@ -42,6 +46,7 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
   const [logoutOpen, setLogoutOpen] = useState(false);
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
 
   // Use controlled state if provided, otherwise use internal state
@@ -86,6 +91,32 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
       onStateChange?.(internalIsOpen);
     }
   }, [internalIsOpen, onStateChange, controlledIsOpen]);
+
+  const handleLogout = async () => {
+    console.log('========================================');
+    console.log('🚪 LOGOUT INITIATED');
+    console.log('========================================');
+    
+    try {
+      // Dispatch logout action to clear Redux state
+      await dispatch(logout() as any);
+      
+      console.log('✅ Logout successful - Clearing session');
+      console.log('Navigating to login screen...');
+      console.log('========================================');
+      
+      // Close modals
+      setLogoutOpen(false);
+      
+      // Navigate to login screen
+      setTimeout(() => {
+        router.replace('/auth/login');
+      }, 100);
+    } catch (error) {
+      console.log('❌ Logout error:', error);
+      console.log('========================================');
+    }
+  };
 
   const handleMenuItemClick = (label: string) => {
     console.log('Menu item clicked:', label); // Debug log
@@ -170,6 +201,7 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
   const logoutItem = { icon: LogOut, label: "Logout" };
 
   const windowWidth = Dimensions.get('window').width;
+  const windowHeight = Dimensions.get('window').height;
   const isMobile = windowWidth < 768;
 
   return (
@@ -190,6 +222,16 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
         >
           {/* Logo */}
           <View style={styles.logoContainer}>
+            {isMobile && (
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => {
+                  onStateChange?.(false);
+                }}
+              >
+                <X size={24} color={colors.foreground} />
+              </TouchableOpacity>
+            )}
             {isDark ? (
               <Image
                 source={require('../../assets/images/logo-white.png')}
@@ -289,22 +331,10 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
               </View>
             ))}
           </View>
+        </ScrollView>
 
-          {/* Upgrade Card */}
-          <View style={styles.upgradeCardContainer}>
-            <View style={[styles.upgradeCard, { backgroundColor: colors.secondary }]}>
-              <Text style={[styles.upgradeTitle, { color: colors.yellow }]}>Access to all Domains</Text>
-              <Text style={[styles.upgradeSubtitle, { color: colors.foreground }]}>
-                Elevate Exam is Ready{'\n'}to help You Grow.
-              </Text>
-              <TouchableOpacity style={[styles.upgradeButton, { backgroundColor: colors.yellow }]}>
-                <Text style={[styles.upgradeButtonText, { color: colors.background }]}>Upgrade Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Logout Section */}
-          <View style={[styles.logoutSection, { borderTopColor: colors.border }]}>
+        {/* Logout Section - Positioned at bottom */}
+        <View style={[styles.logoutSection, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
             <TouchableOpacity
               style={styles.logoutButton}
               onPress={() => handleMenuItemClick(logoutItem.label)}
@@ -313,53 +343,48 @@ export default function Sidebar({ style, onStateChange, currentPage = 'courses',
               <Text style={[styles.logoutText, { color: colors.foreground }]}>{logoutItem.label}</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
       </View>
-
-      {/* Overlay - Only show on mobile when sidebar is open */}
-      {isOpen && isMobile && (
-        <TouchableOpacity
-          style={styles.overlay}
-          onPress={() => {
-            // Always notify parent to close, parent will handle the state
-            onStateChange?.(false);
-          }}
-          activeOpacity={1}
-          pointerEvents="auto"
-        />
-      )}
 
       {/* Notification Modal */}
       <NotificationModal open={notificationOpen} onOpenChange={setNotificationOpen} />
 
-      {/* Logout Confirmation Modal */}
-      <View style={logoutOpen ? styles.modalOverlay : { display: 'none' }}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Confirm Logout</Text>
-            <Text style={[styles.modalDescription, { color: colors.foreground }]}>
-              Are you sure you want to log out of your account?
-            </Text>
-          </View>
-          <View style={styles.modalFooter}>
-            <TouchableOpacity 
-              style={[styles.cancelButton, { borderColor: colors.border }]} 
-              onPress={() => setLogoutOpen(false)}
-            >
-              <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.logoutConfirmButton}
-              onPress={() => {
-                setLogoutOpen(false);
-                console.log("User logged out");
-              }}
-            >
-              <Text style={styles.logoutConfirmButtonText}>Logout</Text>
-            </TouchableOpacity>
+      {/* Logout Confirmation Modal - Full Screen Centered */}
+      <Modal
+        visible={logoutOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLogoutOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Confirm Logout</Text>
+              <Text style={[styles.modalDescription, { color: colors.foreground }]}>
+                Are you sure you want to log out of your account?
+              </Text>
+            </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.cancelButton, { borderColor: colors.border }]} 
+                onPress={() => setLogoutOpen(false)}
+              >
+                <Text style={[styles.cancelButtonText, { color: colors.foreground }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.logoutConfirmButton}
+                onPress={handleLogout}
+              >
+                <Text style={styles.logoutConfirmButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </Modal>
     </>
   );
 }
@@ -375,15 +400,16 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     backgroundColor: colors.background,
     borderRightWidth: 1,
     borderRightColor: colors.border,
-    paddingTop: insets.top,
+    paddingTop: 0,
     elevation: 5,
+    height: '100%',
   },
   sidebarScrollView: {
     flex: 1,
   },
   sidebarContent: {
     flexGrow: 1,
-    paddingBottom: 32 + insets.bottom, // Account for semi bottom bar height
+    paddingBottom: 100 + insets.bottom, // Padding to account for logout button above bottom bar
   },
   sidebarOpen: {
     transform: [{ translateX: 0 }],
@@ -393,10 +419,20 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
   },
   logoContainer: {
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     height: 64,
     paddingHorizontal: 16,
+    paddingTop: 16 + insets.top,
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 16,
+    padding: 8,
+    zIndex: 10,
+    alignSelf: 'center',
   },
   logo: {
     alignSelf: 'center',
@@ -440,47 +476,15 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  upgradeCardContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  upgradeCard: {
-    width: 180,
-    height: 150,
-    paddingVertical: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  upgradeTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  upgradeSubtitle: {
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  upgradeButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  upgradeButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   logoutSection: {
+    position: 'absolute',
+    bottom: 80 + insets.bottom, // Position above bottom navigation bar (80px height + safe area)
+    left: 0,
+    right: 0,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
+    backgroundColor: colors.background,
   },
   logoutButton: {
     flexDirection: 'row',
@@ -496,34 +500,19 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1002,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    width: Dimensions.get('window').width,
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderRadius: 2,
+    borderRadius: 4,
     padding: 24,
-    width: '90%',
-    maxWidth: 425,
+    width: Dimensions.get('window').width - 40,
+    maxWidth: 500,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -547,7 +536,7 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
   cancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 2,
+    borderRadius: 4,
     borderWidth: 1,
   },
   cancelButtonText: {
@@ -557,7 +546,7 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
   logoutConfirmButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 2,
+    borderRadius: 4,
     backgroundColor: colors.destructive,
   },
   logoutConfirmButtonText: {

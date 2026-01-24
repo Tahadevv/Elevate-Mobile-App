@@ -1,6 +1,6 @@
 // API Configuration
 const API_CONFIG = {
-  baseURL: 'https://backend.smartcnc.site',
+  baseURL: 'https://asiddiqui.pythonanywhere.com',
 
   // Fixed token for testing (fallback)
   FIXED_TOKEN: 'ef9f2920fb036c8f6658be90ea21019149cbbd97',
@@ -25,6 +25,13 @@ const API_CONFIG = {
     getCourseDetails: (courseId) => `/course_details/${courseId}/`,
     getCourseFlashcards: (courseId) => `/courses/${courseId}/flashcard_page/`,
     registerCourse: '/user_courses/',
+  },
+
+  // Favorites Endpoints
+  favorites: {
+    postFavorite: '/favorites/',
+    getFavorites: (courseId) => `/favorites/course/${courseId}/`,
+    deleteFavorite: (favoriteId) => `/favorites/${favoriteId}/`,
   },
 
   // Notes Endpoints

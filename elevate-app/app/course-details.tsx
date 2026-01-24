@@ -11,8 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { PremiumLoader } from '../components/ui/premium-loader';
 import API_CONFIG from '../config.api';
-import { DotLoader } from '../components/ui/dot-loader';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchCourseDetails } from '../store/slices/courseDetailsSlice';
 
@@ -70,9 +70,7 @@ export default function CourseDetailsPage() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color="#185abd" text="Loading course details..." />
-        </View>
+        <PremiumLoader text="Loading course details..." size="large" />
       </SafeAreaView>
     );
   }
@@ -337,11 +335,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     padding: 24,
     borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   tabTitle: {
     fontSize: 16,
@@ -438,6 +431,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#000',
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 8,
   },
   chapterContent: {
     padding: 12,
@@ -460,11 +456,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#f0f0f0',
     alignSelf: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   backButtonText: {
     fontSize: 16,
@@ -476,7 +467,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    minHeight: '100%',
   },
   loadingText: {
     marginTop: 16,

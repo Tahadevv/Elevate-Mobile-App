@@ -50,15 +50,22 @@ export default function SettingsScreen() {
   // Update form data when user profile is loaded
   useEffect(() => {
     if (userProfile) {
-      setFormData({
-        fullName: userProfile.name || '',
-        email: userProfile.email || '',
-        password: '',
-        confirmPassword: '',
-        bio: userProfile.description || ''
+      setFormData(prev => {
+        // Only update if values actually changed to prevent infinite loops
+        const newData = {
+          fullName: userProfile.name || '',
+          email: userProfile.email || '',
+          password: '',
+          confirmPassword: '',
+          bio: userProfile.description || ''
+        };
+        if (prev.fullName === newData.fullName && prev.email === newData.email && prev.bio === newData.bio) {
+          return prev;
+        }
+        return newData;
       });
     }
-  }, [userProfile]);
+  }, [userProfile?.name, userProfile?.email, userProfile?.description]);
 
   const handleTabPress = (tabName: string) => {
     setActiveTab(tabName);

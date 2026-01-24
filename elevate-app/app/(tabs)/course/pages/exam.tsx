@@ -11,12 +11,12 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AIChatInterface } from '../../../../components/chatbot/AIChatInterface';
+import { SupportModalProvider, useSupportModal } from '../../../../components/dashboardItems/support-modal';
 import { useColors } from '../../../../components/theme-provider';
+import { PremiumLoader } from '../../../../components/ui/premium-loader';
 import API_CONFIG from '../../../../config.api';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchPracticeQuiz, setCurrentQuestion } from '../../../../store/slices/practiceQuizSlice';
-import { useSupportModal, SupportModalProvider } from '../../../../components/dashboardItems/support-modal';
-import { DotLoader } from '../../../../components/ui/dot-loader';
 
 interface Question {
   id?: number; // Question ID from API
@@ -479,108 +479,135 @@ function ExamScreenContent() {
     setChapterProgress(Array(chaptersLength).fill(0));
     setExpandedChapters(Array(chaptersLength).fill(false));
     
-    const newCompletedQuestions = course.chapters.map(chapter =>
+    // Initialize arrays
+    let newCompletedQuestions = course.chapters.map(chapter =>
       chapter.subChapters.map(subChapter =>
         Array(subChapter.questions.length).fill(false)
       )
     );
-    setCompletedQuestions(newCompletedQuestions);
     
-    const newFlaggedQuestions = course.chapters.map(chapter =>
+    let newFlaggedQuestions = course.chapters.map(chapter =>
       chapter.subChapters.map(subChapter =>
         Array(subChapter.questions.length).fill(false)
       )
     );
-    setFlaggedQuestions(newFlaggedQuestions);
 
-    // Restore progress from API if available
-    if (apiProgress && progressLoaded && apiProgress.last_viewed_question !== null && apiProgress.last_viewed_question !== undefined) {
-      // Find the question in the structure
-      let chapterIdx = 0;
-      let subtopicIdx = 0;
-      let questionIdx = 0;
-      let found = false;
-      
-      for (let c = 0; c < course.chapters.length; c++) {
-        for (let s = 0; s < course.chapters[c].subChapters.length; s++) {
-          for (let q = 0; q < course.chapters[c].subChapters[s].questions.length; q++) {
-            const question = course.chapters[c].subChapters[s].questions[q];
-            if (question.id === apiProgress.last_viewed_question) {
-              chapterIdx = c;
-              subtopicIdx = s;
-              questionIdx = q;
-              found = true;
-              break;
-            }
-          }
-          if (found) break;
-        }
-        if (found) break;
-      }
-      
-      if (found) {
-        // Build progress map to check answered questions
-        const progressMap: Record<number, { selectedOption: number | null; isFlagged: boolean }> = {};
-        if (apiProgress.chapters) {
-          apiProgress.chapters.forEach((progressChapter: any) => {
-            progressChapter.subtopics?.forEach((progressSubtopic: any) => {
-              progressSubtopic.questions?.forEach((progressQuestion: any) => {
-                progressMap[progressQuestion.question] = {
-                  selectedOption: progressQuestion.selected_option,
-                  isFlagged: progressQuestion.is_flagged
-                };
-              });
+    // Populate progress from API if available
+    if (apiProgress && progressLoaded) {
+      // Build progress map to check answered questions
+      const progressMap: Record<number, { selectedOption: number | null; isFlagged: boolean }> = {};
+      if (apiProgress.chapters) {
+        apiProgress.chapters.forEach((progressChapter: any) => {
+          progressChapter.subtopics?.forEach((progressSubtopic: any) => {
+            progressSubtopic.questions?.forEach((progressQuestion: any) => {
+              progressMap[progressQuestion.question] = {
+                selectedOption: progressQuestion.selected_option,
+                isFlagged: progressQuestion.is_flagged
+              };
             });
           });
-        }
+        });
+      }
 
-        // Find next unanswered question
-        let nextChapterIdx = chapterIdx;
-        let nextSubtopicIdx = subtopicIdx;
-        let nextQuestionIdx = questionIdx;
+      // Populate completedQuestions and flaggedQuestions from API progress
+      newCompletedQuestions = course.chapters.map((chapter, chapterIdx) =>
+        chapter.subChapters.map((subChapter, subChapterIdx) =>
+          subChapter.questions.map((question, questionIdx) => {
+            const progress = question?.id ? progressMap[question.id] : undefined;
+            // Question is completed if selected_option is not null
+            return progress?.selectedOption !== null && progress?.selectedOption !== undefined;
+          })
+        )
+      );
+
+      newFlaggedQuestions = course.chapters.map((chapter, chapterIdx) =>
+        chapter.subChapters.map((subChapter, subChapterIdx) =>
+          subChapter.questions.map((question, questionIdx) => {
+            const progress = question?.id ? progressMap[question.id] : undefined;
+            // Question is flagged if is_flagged is true
+            return progress?.isFlagged === true;
+          })
+        )
+      );
+
+      // Restore navigation position if last_viewed_question exists
+      if (apiProgress.last_viewed_question !== null && apiProgress.last_viewed_question !== undefined) {
+        // Find the question in the structure
+        let chapterIdx = 0;
+        let subtopicIdx = 0;
+        let questionIdx = 0;
+        let found = false;
         
-        // Start from next question after last viewed
-        nextQuestionIdx++;
-        
-        if (nextQuestionIdx >= course.chapters[nextChapterIdx].subChapters[nextSubtopicIdx].questions.length) {
-          nextQuestionIdx = 0;
-          nextSubtopicIdx++;
-          
-          if (nextSubtopicIdx >= course.chapters[nextChapterIdx].subChapters.length) {
-            nextSubtopicIdx = 0;
-            nextChapterIdx++;
-          }
-        }
-        
-        // Find first unanswered question from this point
-        let unansweredFound = false;
-        for (let c = nextChapterIdx; c < course.chapters.length && !unansweredFound; c++) {
-          for (let s = (c === nextChapterIdx ? nextSubtopicIdx : 0); s < course.chapters[c].subChapters.length && !unansweredFound; s++) {
-            for (let q = (c === nextChapterIdx && s === nextSubtopicIdx ? nextQuestionIdx : 0); q < course.chapters[c].subChapters[s].questions.length; q++) {
-              const questionId = course.chapters[c].subChapters[s].questions[q].id;
-              const progress = questionId ? progressMap[questionId] : undefined;
-              
-              if (!progress || progress.selectedOption === null) {
-                setCurrentChapterIndex(c);
-                setCurrentSubChapterIndex(s);
-                dispatch(setCurrentQuestion(q));
-                unansweredFound = true;
-                console.log('📍 Restored to unanswered question:', { c, s, q, questionId });
+        for (let c = 0; c < course.chapters.length; c++) {
+          for (let s = 0; s < course.chapters[c].subChapters.length; s++) {
+            for (let q = 0; q < course.chapters[c].subChapters[s].questions.length; q++) {
+              const question = course.chapters[c].subChapters[s].questions[q];
+              if (question.id === apiProgress.last_viewed_question) {
+                chapterIdx = c;
+                subtopicIdx = s;
+                questionIdx = q;
+                found = true;
                 break;
               }
             }
+            if (found) break;
           }
+          if (found) break;
         }
         
-        // If all questions answered, go to last viewed
-        if (!unansweredFound && found) {
-          setCurrentChapterIndex(chapterIdx);
-          setCurrentSubChapterIndex(subtopicIdx);
-          dispatch(setCurrentQuestion(questionIdx));
-          console.log('📍 Restored to last viewed question:', { chapterIdx, subtopicIdx, questionIdx });
+        if (found) {
+          // Find next unanswered question
+          let nextChapterIdx = chapterIdx;
+          let nextSubtopicIdx = subtopicIdx;
+          let nextQuestionIdx = questionIdx;
+          
+          // Start from next question after last viewed
+          nextQuestionIdx++;
+          
+          if (nextQuestionIdx >= course.chapters[nextChapterIdx].subChapters[nextSubtopicIdx].questions.length) {
+            nextQuestionIdx = 0;
+            nextSubtopicIdx++;
+            
+            if (nextSubtopicIdx >= course.chapters[nextChapterIdx].subChapters.length) {
+              nextSubtopicIdx = 0;
+              nextChapterIdx++;
+            }
+          }
+          
+          // Find first unanswered question from this point
+          let unansweredFound = false;
+          for (let c = nextChapterIdx; c < course.chapters.length && !unansweredFound; c++) {
+            for (let s = (c === nextChapterIdx ? nextSubtopicIdx : 0); s < course.chapters[c].subChapters.length && !unansweredFound; s++) {
+              for (let q = (c === nextChapterIdx && s === nextSubtopicIdx ? nextQuestionIdx : 0); q < course.chapters[c].subChapters[s].questions.length; q++) {
+                const questionId = course.chapters[c].subChapters[s].questions[q].id;
+                const progress = questionId ? progressMap[questionId] : undefined;
+                
+                if (!progress || progress.selectedOption === null) {
+                  setCurrentChapterIndex(c);
+                  setCurrentSubChapterIndex(s);
+                  dispatch(setCurrentQuestion(q));
+                  unansweredFound = true;
+                  console.log('📍 Restored to unanswered question:', { c, s, q, questionId });
+                  break;
+                }
+              }
+            }
+          }
+          
+          // If all questions answered, go to last viewed
+          if (!unansweredFound) {
+            setCurrentChapterIndex(chapterIdx);
+            setCurrentSubChapterIndex(subtopicIdx);
+            dispatch(setCurrentQuestion(questionIdx));
+            console.log('📍 Restored to last viewed question:', { chapterIdx, subtopicIdx, questionIdx });
+          }
         }
       }
     }
+
+    // Set the populated arrays to state
+    setCompletedQuestions(newCompletedQuestions);
+    setFlaggedQuestions(newFlaggedQuestions);
   }, [course.chapters.length, progressLoaded, apiProgress]);
 
   // Current question data with null checks
@@ -628,8 +655,41 @@ function ExamScreenContent() {
     setCurrentChapterIndex(chapterIdx);
     setCurrentSubChapterIndex(subChapterIdx);
     dispatch(setCurrentQuestion(questionIdx));
-    setSelectedOption(null);
-    setIsAnswered(false);
+    
+    // Restore selected option from progress if available
+    const question = course.chapters[chapterIdx]?.subChapters[subChapterIdx]?.questions[questionIdx];
+    if (question?.id && apiProgress?.chapters) {
+      // Find progress for this question
+      let progressData: { selectedOption: number | null; isFlagged: boolean } | undefined;
+      for (const progressChapter of apiProgress.chapters) {
+        for (const progressSubtopic of progressChapter.subtopics || []) {
+          const progressQuestion = progressSubtopic.questions?.find((pq: any) => pq.question === question.id);
+          if (progressQuestion) {
+            progressData = {
+              selectedOption: progressQuestion.selected_option,
+              isFlagged: progressQuestion.is_flagged
+            };
+            break;
+          }
+        }
+        if (progressData) break;
+      }
+      
+      // Restore selected option if question was answered
+      if (progressData?.selectedOption !== null && progressData?.selectedOption !== undefined) {
+        const optionIndex = progressData.selectedOption;
+        const selectedOptionText = question.options?.[optionIndex] || null;
+        setSelectedOption(selectedOptionText);
+        setIsAnswered(true);
+      } else {
+        setSelectedOption(null);
+        setIsAnswered(false);
+      }
+    } else {
+      setSelectedOption(null);
+      setIsAnswered(false);
+    }
+    
     // Switch to quiz tab when navigating from courses
     setActiveTab('quiz');
   };
@@ -824,9 +884,7 @@ function ExamScreenContent() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Loading State */}
       {isLoading && (
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color={colors.primary} text="Loading practice quiz..." />
-        </View>
+        <PremiumLoader text="Please wait, generating Quiz..." size="large" />
       )}
 
       {/* Content */}
@@ -1488,11 +1546,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
     marginHorizontal: 0,
     marginBottom: 0,
     zIndex: 1000,
@@ -1606,11 +1659,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
   },
   fixedAddNoteButtonText: {
     fontSize: 16,

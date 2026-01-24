@@ -1,6 +1,6 @@
+import LottieView from 'lottie-react-native';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, Image, StyleSheet, Text, View } from 'react-native';
-import { useTheme } from '../theme-provider';
+import { Dimensions, StyleSheet, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -9,51 +9,34 @@ interface SplashScreenProps {
 }
 
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const { colors, isDark } = useTheme();
+  const animationRef = useRef<LottieView>(null);
 
   useEffect(() => {
-    // Fade in and scale up animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Start animation when component mounts
+    animationRef.current?.play();
 
-    // Auto-advance after 3 seconds
+    // Auto-advance after animation duration (180 frames / 30 fps = 6 seconds)
+    // The onAnimationFinish callback will also handle completion
     const timer = setTimeout(() => {
       onComplete();
-    }, 3000);
+    }, 6000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        <Image 
-          source={isDark ? require('../../assets/images/logo-white.png') : require('../../assets/images/logo.png')}
-          style={styles.logo}
-          
-        />
-        
-      </Animated.View>
+    <View style={styles.container}>
+      <LottieView
+        ref={animationRef}
+        source={require('../../assets/animated-splash/elevateExams.json')}
+        style={styles.animation}
+        autoPlay
+        loop={false}
+        resizeMode="contain"
+        onAnimationFinish={onComplete}
+      />
     </View>
   );
 }
@@ -63,24 +46,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#ffffff',
   },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 120,
-    height: 120,
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginTop: 20,
-    textAlign: 'center',
-  },
-  tagline: {
-    fontSize: 16,
-    marginTop: 8,
-    textAlign: 'center',
+  animation: {
+    width: width,
+    height: height,
   },
 });

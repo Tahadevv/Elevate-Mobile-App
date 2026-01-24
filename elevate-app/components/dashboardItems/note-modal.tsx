@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from 'expo-blur';
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  StyleSheet,
   Dimensions,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
@@ -76,6 +77,11 @@ export default function NoteModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+        )}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoidingView}
@@ -153,9 +159,10 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 2,
+    borderRadius: 4,
     width: width * 0.9,
     maxWidth: 400,
+    marginHorizontal: 20,
     padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -176,7 +183,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
-    borderRadius: 2,
+    borderRadius: 4,
   },
   form: {
     gap: 16,
@@ -192,7 +199,7 @@ const styles = StyleSheet.create({
   textInput: {
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 2,
+    borderRadius: 4,
     padding: 12,
     fontSize: 16,
     backgroundColor: "white",
@@ -210,7 +217,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 2,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: "#d1d5db",
     backgroundColor: "white",
@@ -223,7 +230,7 @@ const styles = StyleSheet.create({
   submitButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 2,
+    borderRadius: 4,
     backgroundColor: "#8b5cf6",
   },
   submitButtonText: {

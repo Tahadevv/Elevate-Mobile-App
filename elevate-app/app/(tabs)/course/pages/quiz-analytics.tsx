@@ -1,20 +1,20 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  Flag,
-  SkipForward,
-  X,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    FileText,
+    Flag,
+    SkipForward,
+    X,
 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { useColors, useTheme } from '../../../../components/theme-provider';
@@ -36,7 +36,12 @@ interface APIQuestion {
 
 interface APIQuestionsResponse {
   total_questions: number;
-  questions: APIQuestion[];
+  name?: string;
+  chapters: {
+    subtopics: {
+      questions: APIQuestion[];
+    }[];
+  }[];
 }
 
 interface APIProgressQuestion {
@@ -55,7 +60,12 @@ interface APIProgressResponse {
   correct_count: number;
   last_viewed_question: number | null;
   is_submitted: boolean;
-  questions: APIProgressQuestion[];
+  questions?: APIProgressQuestion[];
+  chapters?: {
+    subtopics: {
+      questions: APIProgressQuestion[];
+    }[];
+  }[];
 }
 
 interface APIProgressWrapper {
@@ -176,12 +186,11 @@ const DonutChart: React.FC<DonutChartProps> = ({
   );
 };
 
-export default function TestAnalyticsScreen() {
+export default function QuizAnalyticsScreen() {
   const { token } = useAppSelector((state: any) => state.auth);
   const { courseDetails } = useAppSelector((state: any) => state.courseDetails);
   const colors = useColors();
   const { isDark } = useTheme();
-  const router = useRouter();
 
   // Get course ID from navigation params
   const localParams = useLocalSearchParams<{ courseId?: string }>();
@@ -222,16 +231,16 @@ export default function TestAnalyticsScreen() {
         let progressData: APIProgressResponse;
 
         try {
-          // Fetch questions and progress in parallel
+          // Fetch questions and progress in parallel - QUIZ API ENDPOINTS
           const [questionsResponse, progressResponse] = await Promise.all([
-            fetch(`${API_CONFIG.baseURL}/courses/${courseId}/full_test_page/`, {
+            fetch(`${API_CONFIG.baseURL}/courses/${courseId}/question_page`, {
               method: 'GET',
               headers: {
                 'Authorization': `Token ${token}`,
                 'Content-Type': 'application/json',
               },
             }),
-            fetch(`${API_CONFIG.baseURL}/test_progress/${courseId}/latest-submitted-analytics/`, {
+            fetch(`${API_CONFIG.baseURL}/quiz_progress/${courseId}/latest-submitted-analytics/`, {
               method: 'GET',
               headers: {
                 'Authorization': `Token ${token}`,
@@ -283,33 +292,66 @@ export default function TestAnalyticsScreen() {
         setQuestionsData(questionsData);
         setProgressData(progressData);
 
-        // Transform API data to component format
-        const transformedQuestions = questionsData.questions.map((apiQuestion, index) => {
-          const progressQuestion = progressData.questions.find((pq) => pq.question === apiQuestion.id);
+        // Create progress map for quick lookup
+        const progressMap = new Map<number, { selected_option: number | null; is_flagged: boolean }>();
+        
+        // Handle both nested chapters structure and flat questions array
+        if (progressData.questions && Array.isArray(progressData.questions)) {
+          // Flat questions array
+          progressData.questions.forEach(progressQuestion => {
+            progressMap.set(progressQuestion.question, {
+              selected_option: progressQuestion.selected_option,
+              is_flagged: progressQuestion.is_flagged
+            });
+          });
+        } else if (progressData.chapters && Array.isArray(progressData.chapters)) {
+          // Nested chapters structure
+          progressData.chapters.forEach((chapter: any) => {
+            chapter.subtopics.forEach((subtopic: any) => {
+              subtopic.questions.forEach((progressQuestion: any) => {
+                progressMap.set(progressQuestion.question, {
+                  selected_option: progressQuestion.selected_option,
+                  is_flagged: progressQuestion.is_flagged
+                });
+              });
+            });
+          });
+        }
 
-          let status: QuestionStatus = 'skipped';
+        // Transform API data to component format - Handle nested structure
+        const transformedQuestions: Question[] = [];
+        let questionNumber = 1;
 
-          // Determine status based on answer (not flagged status)
-          if (progressQuestion && progressQuestion.selected_option !== null) {
-            // Check if answer is correct or incorrect
-            status = progressQuestion.selected_option === apiQuestion.correct_option ? 'correct' : 'incorrect';
-          } else {
-            // No answer selected = skipped
-            status = 'skipped';
-          }
+        questionsData.chapters.forEach(chapter => {
+          chapter.subtopics.forEach(subtopic => {
+            subtopic.questions.forEach(apiQuestion => {
+              const progressQuestion = progressMap.get(apiQuestion.id);
 
-          // Get correct option text based on correct_option number
-          const correctOptionText = apiQuestion[`option${apiQuestion.correct_option}` as keyof APIQuestion] as string;
+              let status: QuestionStatus = 'skipped';
 
-          return {
-            id: index + 1, // Serial number instead of question ID
-            text: apiQuestion.text,
-            status,
-            category: courseName,
-            explanation: apiQuestion.explanation,
-            correct_option: correctOptionText,
-            isFlagged: progressQuestion?.is_flagged || false,
-          };
+              // Determine status based on answer (not flagged status)
+              if (progressQuestion && progressQuestion.selected_option !== null) {
+                // Check if answer is correct or incorrect
+                status = progressQuestion.selected_option === apiQuestion.correct_option ? 'correct' : 'incorrect';
+              } else {
+                // No answer selected = skipped
+                status = 'skipped';
+              }
+
+              // Get correct option text based on correct_option number
+              const correctOptionText = apiQuestion[`option${apiQuestion.correct_option}` as keyof APIQuestion] as string;
+
+              transformedQuestions.push({
+                id: questionNumber++, // Serial number instead of question ID
+                text: apiQuestion.text,
+                status,
+                category: questionsData.name || courseName || 'Quiz',
+                explanation: apiQuestion.explanation,
+                correct_option: correctOptionText,
+                isFlagged: progressQuestion?.is_flagged || false,
+              });
+            });
+          });
         });
 
         setQuestions(transformedQuestions);
@@ -327,12 +369,13 @@ export default function TestAnalyticsScreen() {
   }, [courseId, token, courseName]);
 
   // Calculate statistics from API data
-  const totalQuestions = questionsData?.total_questions || 0;
-  const correctCount = progressData?.correct_count || 0;
-  const attemptedQuestions = progressData?.attempted_questions || 0;
-  const incorrectCount = attemptedQuestions - correctCount;
-  const flaggedCount = progressData?.flagged_count || 0;
-  const skippedCount = totalQuestions - attemptedQuestions;
+  const totalQuestions = questions.length > 0 ? questions.length : (questionsData?.total_questions || 0);
+  const correctCount = questions.length > 0 
+    ? questions.filter(q => q.status === 'correct').length 
+    : (progressData?.correct_count || 0);
+  const attemptedQuestions = questions.length > 0
+    ? questions.filter(q => q.status === 'correct' || q.status === 'incorrect').length
+    : (progressData?.attempted_questions || 0);
   const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
   const answeredCount = attemptedQuestions;
 
@@ -385,9 +428,9 @@ export default function TestAnalyticsScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Test Not Submitted</Text>
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Quiz Not Submitted</Text>
           <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-            Attempt full test first
+            Complete a quiz first to see detailed analytics here.
           </Text>
         </View>
       </View>
@@ -407,8 +450,97 @@ export default function TestAnalyticsScreen() {
               setLoading(true);
               // Retry fetch
               const fetchQuizData = async () => {
-                // Retry logic here
-                setLoading(false);
+                try {
+                  if (!courseId || !token) {
+                    throw new Error('Missing course ID or token');
+                  }
+
+                  const [questionsResponse, progressResponse] = await Promise.all([
+                    fetch(`${API_CONFIG.baseURL}/courses/${courseId}/question_page`, {
+                      method: 'GET',
+                      headers: {
+                        'Authorization': `Token ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                    }),
+                    fetch(`${API_CONFIG.baseURL}/quiz_progress/${courseId}/latest-submitted-analytics/`, {
+                      method: 'GET',
+                      headers: {
+                        'Authorization': `Token ${token}`,
+                        'Content-Type': 'application/json',
+                      },
+                    }),
+                  ]);
+
+                  if (!questionsResponse.ok || !progressResponse.ok) {
+                    throw new Error('Failed to fetch data');
+                  }
+
+                  const questionsData = await questionsResponse.json();
+                  const progressWrapper = await progressResponse.json();
+                  const progressData = progressWrapper.data;
+
+                  // Create progress map
+                  const progressMap = new Map<number, { selected_option: number | null; is_flagged: boolean }>();
+                  
+                  if (progressData.questions && Array.isArray(progressData.questions)) {
+                    progressData.questions.forEach((progressQuestion: any) => {
+                      progressMap.set(progressQuestion.question, {
+                        selected_option: progressQuestion.selected_option,
+                        is_flagged: progressQuestion.is_flagged
+                      });
+                    });
+                  } else if (progressData.chapters && Array.isArray(progressData.chapters)) {
+                    progressData.chapters.forEach((chapter: any) => {
+                      chapter.subtopics.forEach((subtopic: any) => {
+                        subtopic.questions.forEach((progressQuestion: any) => {
+                          progressMap.set(progressQuestion.question, {
+                            selected_option: progressQuestion.selected_option,
+                            is_flagged: progressQuestion.is_flagged
+                          });
+                        });
+                      });
+                    });
+                  }
+
+                  // Transform questions
+                  const transformedQuestions: Question[] = [];
+                  let questionNumber = 1;
+
+                  questionsData.chapters.forEach((chapter: any) => {
+                    chapter.subtopics.forEach((subtopic: any) => {
+                      subtopic.questions.forEach((apiQuestion: any) => {
+                        const progressQuestion = progressMap.get(apiQuestion.id);
+                        let status: QuestionStatus = 'skipped';
+
+                        if (progressQuestion && progressQuestion.selected_option !== null) {
+                          status = progressQuestion.selected_option === apiQuestion.correct_option ? 'correct' : 'incorrect';
+                        }
+
+                        const correctOptionText = apiQuestion[`option${apiQuestion.correct_option}` as keyof APIQuestion] as string;
+
+                        transformedQuestions.push({
+                          id: questionNumber++,
+                          text: apiQuestion.text,
+                          status,
+                          category: questionsData.name || courseName || 'Quiz',
+                          explanation: apiQuestion.explanation,
+                          correct_option: correctOptionText,
+                          isFlagged: progressQuestion?.is_flagged || false,
+                        });
+                      });
+                    });
+                  });
+
+                  setQuestionsData(questionsData);
+                  setProgressData(progressData);
+                  setQuestions(transformedQuestions);
+                  setError(null);
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Failed to load quiz data');
+                } finally {
+                  setLoading(false);
+                }
               };
               fetchQuizData();
             }}
@@ -502,11 +634,11 @@ export default function TestAnalyticsScreen() {
               <View style={styles.legendItem}>
                 <View style={[styles.legendIcon, { backgroundColor: chartData[1].color }]}>
                   {chartData[1].icon}
-            </View>
+                </View>
                 <Text style={[styles.legendText, { color: colors.foreground }]}>
                   {chartData[1].label.toLowerCase()} {chartData[1].value}
-            </Text>
-          </View>
+                </Text>
+              </View>
             </View>
             {/* Second row: Flagged and Skipped */}
             <View style={styles.legendRow}>
@@ -516,16 +648,16 @@ export default function TestAnalyticsScreen() {
                 </View>
                 <Text style={[styles.legendText, { color: colors.foreground }]}>
                   {chartData[2].label.toLowerCase()} {chartData[2].value}
-            </Text>
-          </View>
+                </Text>
+              </View>
               <View style={styles.legendItem}>
                 <View style={[styles.legendIcon, { backgroundColor: chartData[3].color }]}>
                   {chartData[3].icon}
-            </View>
+                </View>
                 <Text style={[styles.legendText, { color: colors.foreground }]}>
                   {chartData[3].label.toLowerCase()} {chartData[3].value}
-            </Text>
-          </View>
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -548,26 +680,26 @@ export default function TestAnalyticsScreen() {
                     {question.id}
                   </Text>
                   {/* Status indicator */}
-                    {question.status === 'correct' && (
+                  {question.status === 'correct' && (
                     <View style={[styles.statusIndicator, { backgroundColor: '#16a34a' }]}>
-                          <Check size={12} color="#ffffff" />
-                      </View>
-                    )}
-                    {question.status === 'incorrect' && (
+                      <Check size={12} color="#ffffff" />
+                    </View>
+                  )}
+                  {question.status === 'incorrect' && (
                     <View style={[styles.statusIndicator, { backgroundColor: '#dc2626' }]}>
-                          <X size={12} color="#ffffff" />
-                      </View>
-                    )}
-                    {question.status === 'skipped' && (
+                      <X size={12} color="#ffffff" />
+                    </View>
+                  )}
+                  {question.status === 'skipped' && (
                     <View style={[styles.statusIndicator, { backgroundColor: '#6b7280' }]}>
                       <SkipForward size={12} color="#ffffff" />
-                      </View>
-                    )}
-                    {question.isFlagged && (
+                    </View>
+                  )}
+                  {question.isFlagged && (
                     <View style={[styles.statusIndicator, { backgroundColor: '#ca8a04' }]}>
-                          <Flag size={12} color="#ffffff" />
-                      </View>
-                    )}
+                      <Flag size={12} color="#ffffff" />
+                    </View>
+                  )}
                 </View>
 
                 {/* Right side: Category badge with chevron */}
@@ -898,4 +1030,3 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
-

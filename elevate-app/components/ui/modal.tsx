@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from 'expo-blur';
 import React, { ReactNode } from "react";
 import {
     Dimensions,
     Modal as RNModal,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View
@@ -29,6 +31,11 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children }) => {
         activeOpacity={1}
         onPress={onClose}
       >
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+        )}
         <View style={styles.modalContent}>
           <TouchableOpacity
             style={styles.closeButton}
@@ -55,7 +62,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     margin: 16,
     padding: 24,
-    borderRadius: 2,
+    borderRadius: 4,
     width: screenWidth - 32,
     maxWidth: 400,
     shadowColor: "#000",
@@ -69,7 +76,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     padding: 4,
-    borderRadius: 2,
+    borderRadius: 4,
     backgroundColor: "#f3f4f6",
   },
 });

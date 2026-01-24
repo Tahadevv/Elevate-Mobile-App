@@ -1,9 +1,10 @@
 import { Send } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useColors } from '../theme-provider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import API_CONFIG, { buildURL, getAuthHeaders } from '../../config.api';
 import { useAppSelector } from '../../store/hooks';
+import { useColors } from '../theme-provider';
 
 interface Message {
   id: string;
@@ -20,6 +21,15 @@ export function AIChatInterface() {
   const messagesContainerRef = useRef<ScrollView>(null);
   const { token } = useAppSelector((state: any) => state.auth);
   const colors = useColors();
+  const insets = useSafeAreaInsets();
+  
+  // Bottom navigation bar height (approximate: padding + icon + text + spacing)
+  // From course layout: paddingVertical 12 + icon 24 + marginTop 4 + text ~12 + paddingBottom mobile 20 = ~72px
+  const bottomNavBarHeight = 72;
+  // Input container height (padding + input height ~40-50 + padding)
+  const inputContainerHeight = 80;
+  // Total bottom space needed
+  const totalBottomSpace = bottomNavBarHeight + inputContainerHeight;
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -127,16 +137,12 @@ export function AIChatInterface() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Chat messages area */}
       <ScrollView
         ref={messagesContainerRef}
         style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}
+        contentContainerStyle={[styles.messagesContent, { paddingBottom: totalBottomSpace + 20 }]}
         showsVerticalScrollIndicator={false}
       >
         {messages.length === 0 && (
@@ -177,8 +183,16 @@ export function AIChatInterface() {
         ))}
       </ScrollView>
 
-      {/* Input area */}
-      <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+      {/* Input area - Fixed at bottom above navigation bar */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? bottomNavBarHeight : 0}
+      >
+        <View style={[styles.inputContainer, { 
+          borderTopColor: colors.border, 
+          backgroundColor: colors.background,
+          bottom: bottomNavBarHeight + insets.bottom
+        }]}>
         <TextInput
           style={[
             styles.input,
@@ -211,8 +225,9 @@ export function AIChatInterface() {
             <Send size={20} color={colors.background} />
           )}
         </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -266,6 +281,9 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     gap: 8,
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   input: {
     flex: 1,

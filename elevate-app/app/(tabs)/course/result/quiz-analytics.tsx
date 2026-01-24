@@ -9,12 +9,11 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useColors } from '../../../../components/theme-provider';
 import { DotLoader } from '../../../../components/ui/dot-loader';
@@ -101,7 +100,8 @@ export default function QuizAnalyticsScreen() {
   // Get course ID from navigation params
   const localParams = useLocalSearchParams<{ courseId?: string }>();
   const courseId = localParams.courseId || courseDetails?.id?.toString();
-  const courseName = courseDetails?.name || '';
+  // Memoize courseName to prevent infinite loops
+  const courseName = React.useMemo(() => courseDetails?.name || '', [courseDetails?.name]);
 
   // State to track which explanations are open
   const [openExplanations, setOpenExplanations] = useState<Record<number, boolean>>({});

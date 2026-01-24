@@ -1,9 +1,11 @@
+import { BlurView } from 'expo-blur';
 import { ChevronLeft, ChevronRight, Edit, Trash, X } from "lucide-react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +17,6 @@ import API_CONFIG from "../../config.api";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { createEvent, deleteEvent, fetchEvents, updateEvent } from "../../store/slices/eventsSlice";
 import { useColors } from "../theme-provider";
-import { DotLoader } from "../ui/dot-loader";
 
 interface Event {
   id: number;
@@ -278,16 +279,7 @@ export default function CalendarSchedule() {
     return calendarArray;
   }
 
-  if (isLoading && events.length === 0) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color={colors.primary} text="Loading calendar events..." />
-        </View>
-      </View>
-    );
-  }
-
+  // Removed loading state - events will be fetched silently and shown when ready
   return (
     <View style={[styles.container, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Header */}
@@ -307,8 +299,8 @@ export default function CalendarSchedule() {
       {/* Days of week */}
       <View style={styles.daysOfWeekGrid}>
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <View key={day} style={[styles.dayOfWeekBox, { backgroundColor: colors.muted }]}>
-            <Text style={[styles.dayOfWeekText, { color: colors.mutedForeground }]}>{day}</Text>
+          <View key={day} style={styles.dayOfWeekBox}>
+            <Text style={[styles.dayOfWeekText, { color: colors.foreground }]}>{day}</Text>
           </View>
         ))}
       </View>
@@ -336,7 +328,7 @@ export default function CalendarSchedule() {
                   style={[
                     styles.dayCell,
                     { borderTopColor: colors.border },
-                    isHighlighted && { backgroundColor: "#3b82f6" },
+                    isHighlighted && { backgroundColor: colors.yellow || "#ffd404" },
                     !isCurrentMonth && styles.otherMonthDay,
                     isPast && styles.pastDay,
                   ]}
@@ -346,7 +338,7 @@ export default function CalendarSchedule() {
                   <Text
                     style={[
                       styles.dayNumber,
-                      { color: isHighlighted ? "#ffffff" : isCurrentMonth ? colors.foreground : colors.mutedForeground },
+                      { color: isHighlighted ? colors.background : isCurrentMonth ? colors.foreground : colors.mutedForeground },
                       hasEventInCurrentMonthYear && !isHighlighted && styles.dayNumberBold,
                     ]}
                   >
@@ -362,16 +354,20 @@ export default function CalendarSchedule() {
       {/* Events Section */}
       <View style={styles.eventsSection}>
         <Text style={[styles.eventsTitle, { color: colors.mutedForeground }]}>EVENTS</Text>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <DotLoader size="small" color={colors.primary} />
-          </View>
-        ) : error ? (
+        {error ? (
           <View style={styles.errorContainer}>
             <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
           </View>
         ) : (
-          <ScrollView style={styles.eventsList} showsVerticalScrollIndicator={false}>
+          <ScrollView 
+            style={[
+              styles.eventsList,
+              events.length > 4 && { maxHeight: 280, flexGrow: 0 }
+            ]} 
+            showsVerticalScrollIndicator={events.length > 4}
+            nestedScrollEnabled={true}
+            scrollEnabled={events.length > 4}
+          >
             {events.map((event) => (
               <View key={event.id} style={styles.eventRow}>
                 <View style={styles.eventLeft}>
@@ -420,6 +416,11 @@ export default function CalendarSchedule() {
       {/* Add Event Modal */}
       <Modal visible={isModalOpen} transparent animationType="fade">
         <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
           <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>
@@ -497,6 +498,11 @@ export default function CalendarSchedule() {
       {/* Edit Event Modal */}
       <Modal visible={isEditOpen} transparent animationType="fade">
         <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
           <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>Edit Event</Text>
@@ -572,6 +578,11 @@ export default function CalendarSchedule() {
       {/* Delete Confirmation Modal */}
       <Modal visible={isDeleteOpen} transparent animationType="fade">
         <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
           <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>Delete Event</Text>
@@ -612,11 +623,6 @@ const createStyles = (colors: any) => {
     container: {
       backgroundColor: "white",
       borderRadius: 2,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
       width: "100%",
       marginTop: 8,
       marginHorizontal: 0,
@@ -705,7 +711,7 @@ const createStyles = (colors: any) => {
       marginBottom: 12,
     },
     eventsList: {
-      maxHeight: 200,
+      // maxHeight will be set dynamically when events.length > 4
     },
     eventRow: {
       flexDirection: "row",
@@ -776,16 +782,11 @@ const createStyles = (colors: any) => {
       alignItems: "center",
     },
     modalContent: {
-      borderRadius: 16,
+      borderRadius: 4,
       padding: 20,
       width: width * 0.9,
       maxWidth: 400,
       borderWidth: 1,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.2,
-      shadowRadius: 16,
-      elevation: 8,
     },
     modalHeader: {
       flexDirection: "row",
@@ -814,7 +815,7 @@ const createStyles = (colors: any) => {
     },
     input: {
       borderWidth: 1,
-      borderRadius: 10,
+      borderRadius: 4,
       padding: 12,
       fontSize: 16,
       marginBottom: 4,
@@ -834,7 +835,7 @@ const createStyles = (colors: any) => {
       flex: 1,
       paddingVertical: 12,
       paddingHorizontal: 16,
-      borderRadius: 8,
+      borderRadius: 4,
       alignItems: "center",
     },
     cancelButton: {

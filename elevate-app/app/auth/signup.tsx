@@ -1,5 +1,9 @@
-import { Eye, EyeOff } from 'lucide-react-native';
+import { ElevateExamsTitle } from '@/components/pages/ElevateExamsTitle';
+import { useTheme } from '@/components/theme-provider';
+import { DotLoader } from '@/components/ui/dot-loader';
+import { signup } from '@/store/slices/authSlice';
 import { useRouter } from 'expo-router';
+import { Eye, EyeOff } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
@@ -12,11 +16,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { useTheme } from '@/components/theme-provider';
-import { Highlight } from '@/components/pages/Highlight';
-import { signup } from '@/store/slices/authSlice';
-import { DotLoader } from '@/components/ui/dot-loader';
 
 // Password Validation Component
 const PasswordValidation = ({ password }: { password: string }) => {
@@ -47,6 +48,7 @@ export default function SignupScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { isLoading, error } = useSelector((state: any) => state.auth);
+  const insets = useSafeAreaInsets();
 
   const validatePassword = (password: string) => {
     const minLength = 8;
@@ -118,20 +120,29 @@ export default function SignupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <SafeAreaView 
+      style={[styles.container, { backgroundColor: colors.background }]} 
+      edges={['top', 'left', 'right']}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <View style={[styles.topTitleContainer, { paddingTop: insets.top + 8 }]}>
+        <ElevateExamsTitle />
+      </View>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.formContainer}>
           <View style={[styles.card, { backgroundColor: '#ffffff' }]}>
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>
-                Create an <Highlight>Elevate Exams</Highlight> account
-              </Text>
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.headerTitle}>Create an </Text>
+                <ElevateExamsTitle size={0.625} />
+                <Text style={styles.headerTitle}> account</Text>
+              </View>
               <Text style={styles.subtitle}>Fill in the details below and sign up.</Text>
             </View>
 
@@ -286,7 +297,8 @@ export default function SignupScreen() {
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -294,11 +306,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
+  topTitleContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 16,
-    justifyContent: 'center',
-    paddingTop: 20,
+    justifyContent: 'flex-start',
+    paddingTop: '28%',
   },
   formContainer: {
     width: '100%',
@@ -317,11 +341,16 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,

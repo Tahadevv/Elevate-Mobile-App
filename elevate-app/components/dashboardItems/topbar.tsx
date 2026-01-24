@@ -1,7 +1,7 @@
 import { logout } from "@/store/slices/authSlice";
 import { fetchUserProfile } from "@/store/slices/userSlice";
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronUp, HelpCircle, LogOut, Menu, ShieldCheck, User, X } from "lucide-react-native";
+import { ChevronDown, ChevronUp, HelpCircle, LogOut, Menu, User, X } from "lucide-react-native";
 import React, { useEffect } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,6 @@ import { useColors } from "../theme-provider";
 
 const menuOptions = [
   { icon: User, text: "My Profile", href: "/dashboard/account" },
-  { icon: ShieldCheck, text: "Subscribed Domains", href: "/dashboard/current-subscription" },
   { icon: HelpCircle, text: "Help Center", href: "/dashboard/help" },
 ];
 
@@ -33,8 +32,8 @@ export default function Topbar({ sidebarOpen = false, onToggleSidebar }: TopbarP
   const { token, user: authUser } = useSelector((state: any) => state.auth);
   const { userProfile } = useSelector((state: any) => state.user);
 
-  // Use user data from either auth.user or user.userProfile
-  const user = authUser || userProfile;
+  // Use user data from either auth.user or user.userProfile - memoized to prevent infinite loops
+  const user = React.useMemo(() => authUser || userProfile, [authUser, userProfile]);
   const userName = user?.name || user?.email?.split('@')[0] || 'User';
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -76,7 +75,7 @@ export default function Topbar({ sidebarOpen = false, onToggleSidebar }: TopbarP
     if (profileButtonRef.current) {
       profileButtonRef.current.measure((x, y, width, height, pageX, pageY) => {
         setDropdownPosition({
-          top: pageY + height + 4,
+          top: pageY + height - 8, // Moved up by reducing gap
           left: pageX + width - 240, // Align dropdown to right edge of button
           width: 240
         });
@@ -112,15 +111,14 @@ export default function Topbar({ sidebarOpen = false, onToggleSidebar }: TopbarP
           style={styles.profileButton} 
           onPress={toggleDropdown}
         >
-          {open ? (
-            <ChevronUp size={24} color={colors.foreground} style={styles.chevron} />
-          ) : (
-            <ChevronDown size={24} color={colors.foreground} style={styles.chevron} />
-          )}
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{userInitial}</Text>
           </View>
-          <Text style={[styles.userName, { color: colors.foreground }]}>{userName}</Text>
+          {open ? (
+            <ChevronUp size={20} color={colors.foreground} style={styles.chevron} />
+          ) : (
+            <ChevronDown size={20} color={colors.foreground} style={styles.chevron} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -220,7 +218,7 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     padding: 8,
   },
   chevron: {
-    marginHorizontal: 8,
+    marginLeft: 4,
   },
   avatar: {
     width: 32,
@@ -229,16 +227,12 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     backgroundColor: colors.yellow,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 4,
   },
   avatarText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   dropdown: {
     backgroundColor: colors.background,
@@ -247,7 +241,7 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 9999,
-    borderRadius: 8,
+    borderRadius: 4,
     paddingVertical: 8,
     zIndex: 99999,
     borderWidth: 1,
@@ -269,10 +263,12 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderRadius: 4,
     padding: 24,
     width: '90%',
     maxWidth: 425,
@@ -299,7 +295,7 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
   cancelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 4,
     borderWidth: 1,
   },
   cancelButtonText: {
@@ -309,7 +305,7 @@ const createStyles = (colors: any, insets: any) => StyleSheet.create({
   logoutButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 4,
     backgroundColor: colors.destructive,
   },
   logoutButtonText: {

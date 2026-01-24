@@ -3,20 +3,21 @@ import {
   ArrowLeft,
   ArrowRight,
   Shuffle,
-  Star,
-  X
+  Star
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '../../../../components/theme-provider';
-import { DotLoader } from '../../../../components/ui/dot-loader';
+import { PremiumLoader } from '../../../../components/ui/premium-loader';
 import API_CONFIG from '../../../../config.api';
 import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
 import { fetchCourseFlashcards } from '../../../../store/slices/flashcardsSlice';
 
 interface Flashcard {
+  id?: number;
   question: string;
   answer: string;
+  is_favorite?: boolean;
 }
 
 interface Subchapter {
@@ -48,10 +49,13 @@ export default function FlashcardsScreen() {
   const [currentSubchapterIndex, setCurrentSubchapterIndex] = useState(0);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [favorited, setFavorited] = useState(false);
+  const [favorited, setFavorited] = useState<Record<string, boolean>>({});
+  // Store favorite record IDs for DELETE operations (if needed)
+  const [favoriteRecordIds, setFavoriteRecordIds] = useState<Record<string, number>>({});
   const [completedCards, setCompletedCards] = useState<boolean[][][]>([]);
   const [isChanging, setIsChanging] = useState(false);
   const [flipAnimation] = useState(new Animated.Value(0));
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   
   const colors = useColors();
   const router = useRouter();
@@ -70,11 +74,59 @@ export default function FlashcardsScreen() {
       const authToken = token || API_CONFIG.FIXED_TOKEN;
       // @ts-ignore - dispatch type issue
       dispatch(fetchCourseFlashcards({ courseId, token: authToken }) as any);
+      // Fetch favorites for this course
+      fetchFavorites(courseId, authToken);
     } else {
       console.warn('⚠️ Missing courseId for flashcards:', { localParams, courseDetailsId: courseDetails?.id });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
+
+  // Fetch favorites for the course
+  const fetchFavorites = async (courseId: string, authToken: string) => {
+    try {
+      const response = await fetch(`${API_CONFIG.baseURL}${API_CONFIG.favorites.getFavorites(courseId)}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const favoritesData = await response.json();
+        console.log('⭐ Favorites fetched:', favoritesData);
+        
+        // Map favorites to flashcard IDs
+        // API response structure: { id: favorite_record_id, flashcard: flashcard_id } or { flashcard: flashcard_id }
+        const favoriteMap: Record<string, boolean> = {};
+        const recordIdMap: Record<string, number> = {};
+        if (Array.isArray(favoritesData)) {
+          favoritesData.forEach((favorite: any) => {
+            // Check for flashcard ID in different possible fields
+            const flashcardId = favorite.flashcard?.toString() || 
+                               favorite.flashcard_id?.toString() || 
+                               favorite.id?.toString();
+            
+            if (flashcardId) {
+              favoriteMap[flashcardId] = true;
+              // Store the favorite record id if available
+              if (favorite.id && favorite.flashcard) {
+                recordIdMap[flashcardId] = favorite.id;
+              }
+            }
+          });
+        }
+        console.log('⭐ Favorites map:', favoriteMap);
+        setFavorited(favoriteMap);
+        setFavoriteRecordIds(recordIdMap);
+      } else {
+        console.warn('⚠️ Failed to fetch favorites:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching favorites:', error);
+    }
+  };
 
   // Handle errors
   useEffect(() => {
@@ -83,31 +135,38 @@ export default function FlashcardsScreen() {
     }
   }, [error]);
 
-  // Convert API data to component format with null checks
-  const course: Course = flashcards ? {
-    courseName: flashcards.name || "Course Flashcards",
-    chapters: (flashcards.chapters || [])
-      .filter((chapter: any) => chapter && chapter.name) // Filter out invalid chapters
-      .map((chapter: any) => ({
-        chapterName: chapter.name || 'Unknown Chapter',
-        subchapters: (chapter.subtopics || [])
-          .filter((subtopic: any) => subtopic && subtopic.name) // Filter out invalid subtopics
-          .map((subtopic: any) => ({
-            subchapterName: subtopic.name || 'Unknown Subchapter',
-            flashcards: (subtopic.flashcards || [])
-              .filter((flashcard: any) => flashcard && (flashcard.primary_text || flashcard.question)) // Filter out invalid flashcards
-              .map((flashcard: any) => ({
-                question: flashcard.primary_text || flashcard.question || 'No question available',
-                answer: flashcard.secondary_text || flashcard.answer || 'No answer available'
-              }))
-          }))
-          .filter((subchapter: any) => subchapter.flashcards.length > 0) // Only include subchapters with flashcards
-      }))
-      .filter((chapter: any) => chapter.subchapters.length > 0) // Only include chapters with subchapters
-  } : {
-    courseName: "No Flashcards",
-    chapters: []
-  };
+  // Convert API data to component format with null checks - memoized to prevent infinite loops
+  const course: Course = React.useMemo(() => {
+    if (!flashcards) {
+      return {
+        courseName: "No Flashcards",
+        chapters: []
+      };
+    }
+    return {
+      courseName: flashcards.name || "Course Flashcards",
+      chapters: (flashcards.chapters || [])
+        .filter((chapter: any) => chapter && chapter.name) // Filter out invalid chapters
+        .map((chapter: any) => ({
+          chapterName: chapter.name || 'Unknown Chapter',
+          subchapters: (chapter.subtopics || [])
+            .filter((subtopic: any) => subtopic && subtopic.name) // Filter out invalid subtopics
+            .map((subtopic: any) => ({
+              subchapterName: subtopic.name || 'Unknown Subchapter',
+              flashcards: (subtopic.flashcards || [])
+                .filter((flashcard: any) => flashcard && (flashcard.primary_text || flashcard.question)) // Filter out invalid flashcards
+                .map((flashcard: any) => ({
+                  id: flashcard.id,
+                  question: flashcard.primary_text || flashcard.question || 'No question available',
+                  answer: flashcard.secondary_text || flashcard.answer || 'No answer available',
+                  is_favorite: flashcard.is_favorite || false
+                }))
+            }))
+            .filter((subchapter: any) => subchapter.flashcards.length > 0) // Only include subchapters with flashcards
+        }))
+        .filter((chapter: any) => chapter.subchapters.length > 0) // Only include chapters with subchapters
+    };
+  }, [flashcards]);
   
   console.log('🔖 Flashcards data:', flashcards);
   console.log('🔖 Course data:', course);
@@ -122,26 +181,40 @@ export default function FlashcardsScreen() {
       );
       setCompletedCards(newCompletedCards);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course.chapters.length]);
 
-  // Current data - with safety checks
-  const currentChapter = course.chapters?.[currentChapterIndex];
+  // Filter flashcards to show only favorites if enabled
+  const filteredCourse: Course = showOnlyFavorites ? {
+    ...course,
+    chapters: course.chapters.map((chapter) => ({
+      ...chapter,
+      subchapters: chapter.subchapters.map((subchapter) => ({
+        ...subchapter,
+        flashcards: subchapter.flashcards.filter((flashcard) => {
+          const flashcardId = flashcard.id?.toString();
+          return flashcardId && (favorited[flashcardId] || flashcard.is_favorite);
+        })
+      })).filter((subchapter) => subchapter.flashcards.length > 0)
+    })).filter((chapter) => chapter.subchapters.length > 0)
+  } : course;
+
+  // Current data - with safety checks (use filtered course)
+  const currentChapter = filteredCourse.chapters?.[currentChapterIndex];
   const currentSubchapter = currentChapter?.subchapters?.[currentSubchapterIndex];
   const currentFlashcard = currentSubchapter?.flashcards?.[currentCardIndex];
 
-  // Calculate total flashcards
-  const totalFlashcards = course.chapters.reduce(
-    (sum, chapter) => sum + chapter.subchapters.reduce((subSum, subchapter) => subSum + subchapter.flashcards.length, 0),
+  // Calculate total flashcards (use filtered course)
+  const totalFlashcards = filteredCourse.chapters.reduce(
+    (sum: number, chapter: any) => sum + chapter.subchapters.reduce((subSum: number, subchapter: any) => subSum + subchapter.flashcards.length, 0),
     0
   );
 
-  // Calculate progress
+  // Calculate progress (use filtered course)
   const progress: Progress = {
     overall: completedCards.flat(2).filter(Boolean).length / totalFlashcards * 100,
-    chapters: course.chapters.map((chapter, chapterIdx) => {
+    chapters: filteredCourse.chapters.map((chapter: any, chapterIdx: number) => {
       const totalChapterCards = chapter.subchapters.reduce(
-        (sum, subchapter) => sum + subchapter.flashcards.length,
+        (sum: number, subchapter: any) => sum + subchapter.flashcards.length,
         0
       );
       const completedChapterCards = completedCards[chapterIdx]?.flat().filter(Boolean).length || 0;
@@ -149,12 +222,12 @@ export default function FlashcardsScreen() {
     }),
   };
 
-  // Get current card number
+  // Get current card number (use filtered course)
   const getCurrentCardNumber = () => {
-    if (!course.chapters || course.chapters.length === 0) return 0;
+    if (!filteredCourse.chapters || filteredCourse.chapters.length === 0) return 0;
     let cardNumber = 1;
     for (let i = 0; i < currentChapterIndex; i++) {
-      const chapter = course.chapters[i];
+      const chapter = filteredCourse.chapters[i];
       if (chapter?.subchapters) {
         for (let j = 0; j < chapter.subchapters.length; j++) {
           cardNumber += chapter.subchapters[j]?.flashcards?.length || 0;
@@ -170,7 +243,60 @@ export default function FlashcardsScreen() {
     return cardNumber;
   };
 
-  // Change card with animation
+  // Handle toggle show only favorites
+  const handleToggleFavorites = () => {
+    const newShowOnlyFavorites = !showOnlyFavorites;
+    
+    // Create filtered course first to check if there are favorites
+    const tempFilteredCourse: Course = newShowOnlyFavorites ? {
+      ...course,
+      chapters: course.chapters.map((chapter) => ({
+        ...chapter,
+        subchapters: chapter.subchapters.map((subchapter) => ({
+          ...subchapter,
+          flashcards: subchapter.flashcards.filter((flashcard) => {
+            const flashcardId = flashcard.id?.toString();
+            return flashcardId && (favorited[flashcardId] || flashcard.is_favorite);
+          })
+        })).filter((subchapter) => subchapter.flashcards.length > 0)
+      })).filter((chapter) => chapter.subchapters.length > 0)
+    } : course;
+    
+    setShowOnlyFavorites(newShowOnlyFavorites);
+    
+    // Reset to first card when toggling filter
+    if (newShowOnlyFavorites) {
+      // Find first favorite flashcard
+      let found = false;
+      for (let c = 0; c < tempFilteredCourse.chapters.length; c++) {
+        const chapter = tempFilteredCourse.chapters[c];
+        for (let s = 0; s < chapter.subchapters.length; s++) {
+          const subchapter = chapter.subchapters[s];
+          if (subchapter.flashcards.length > 0) {
+            setCurrentChapterIndex(c);
+            setCurrentSubchapterIndex(s);
+            setCurrentCardIndex(0);
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+      
+      // If no favorites found, show alert
+      if (!found) {
+        Alert.alert('No Favorites', 'You haven\'t favorited any flashcards yet.');
+        setShowOnlyFavorites(false);
+      }
+    } else {
+      // Reset to first card of original course
+      setCurrentChapterIndex(0);
+      setCurrentSubchapterIndex(0);
+      setCurrentCardIndex(0);
+    }
+  };
+
+  // Change card with animation (use filtered course)
   const changeCard = (chapterIndex: number, subchapterIndex: number, cardIndex: number) => {
     // Reset flip state immediately to prevent flash
     setFlipped(false);
@@ -188,9 +314,9 @@ export default function FlashcardsScreen() {
     }, 100);
   };
 
-  // Handle previous card
+  // Handle previous card (use filtered course)
   const handlePrevious = () => {
-    if (!currentChapter || !currentSubchapter || !course.chapters) return;
+    if (!currentChapter || !currentSubchapter || !filteredCourse.chapters) return;
     
     if (currentCardIndex > 0) {
       changeCard(currentChapterIndex, currentSubchapterIndex, currentCardIndex - 1);
@@ -214,8 +340,8 @@ export default function FlashcardsScreen() {
       }
     } else {
       // Wrap to last card of last subchapter of last chapter
-      const lastChapterIndex = course.chapters.length - 1;
-      const lastChapter = course.chapters[lastChapterIndex];
+      const lastChapterIndex = filteredCourse.chapters.length - 1;
+      const lastChapter = filteredCourse.chapters[lastChapterIndex];
       if (lastChapter?.subchapters && lastChapter.subchapters.length > 0) {
         const lastSubchapterIndex = lastChapter.subchapters.length - 1;
         const lastSubchapter = lastChapter.subchapters[lastSubchapterIndex];
@@ -227,9 +353,9 @@ export default function FlashcardsScreen() {
     }
   };
 
-  // Handle next card
+  // Handle next card (use filtered course)
   const handleNext = () => {
-    if (!currentChapter || !currentSubchapter || !course.chapters) return;
+    if (!currentChapter || !currentSubchapter || !filteredCourse.chapters) return;
     
     // Mark current card as completed
     const newCompletedCards = [...completedCards];
@@ -253,12 +379,12 @@ export default function FlashcardsScreen() {
     }
   };
 
-  // Handle shuffle
+  // Handle shuffle (use filtered course)
   const handleShuffle = () => {
-    if (!course.chapters || course.chapters.length === 0) return;
+    if (!filteredCourse.chapters || filteredCourse.chapters.length === 0) return;
     
-    const randomChapterIndex = Math.floor(Math.random() * course.chapters.length);
-    const randomChapter = course.chapters[randomChapterIndex];
+    const randomChapterIndex = Math.floor(Math.random() * filteredCourse.chapters.length);
+    const randomChapter = filteredCourse.chapters[randomChapterIndex];
     if (!randomChapter?.subchapters || randomChapter.subchapters.length === 0) return;
     
     const randomSubchapterIndex = Math.floor(Math.random() * randomChapter.subchapters.length);
@@ -267,6 +393,30 @@ export default function FlashcardsScreen() {
     
     const randomCardIndex = Math.floor(Math.random() * randomSubchapter.flashcards.length);
     changeCard(randomChapterIndex, randomSubchapterIndex, randomCardIndex);
+  };
+
+  // Initialize favorite status from API data when flashcards load
+  useEffect(() => {
+    if (course.chapters && course.chapters.length > 0) {
+      const favoriteMap: Record<string, boolean> = {};
+      course.chapters.forEach((chapter) => {
+        chapter.subchapters.forEach((subchapter) => {
+          subchapter.flashcards.forEach((flashcard) => {
+            if (flashcard.id !== undefined) {
+              favoriteMap[flashcard.id.toString()] = flashcard.is_favorite || false;
+            }
+          });
+        });
+      });
+      setFavorited(prev => ({ ...prev, ...favoriteMap }));
+    }
+  }, [course.chapters]);
+
+  // Get current flashcard favorite status
+  const getCurrentFlashcardFavoriteStatus = (): boolean => {
+    if (!currentFlashcard?.id) return false;
+    const flashcardId = currentFlashcard.id.toString();
+    return favorited[flashcardId] !== undefined ? favorited[flashcardId] : (currentFlashcard.is_favorite || false);
   };
 
   // Handle card flip
@@ -280,9 +430,66 @@ export default function FlashcardsScreen() {
     }).start();
   };
 
-  // Handle favorite toggle
-  const handleFavorite = () => {
-    setFavorited(!favorited);
+  // Handle favorite (only add, no remove)
+  const handleFavorite = async () => {
+    if (!currentFlashcard?.id) {
+      console.warn('⚠️ Cannot favorite flashcard: missing ID');
+      return;
+    }
+
+    const flashcardId = currentFlashcard.id.toString();
+    const currentFavoriteState = getCurrentFlashcardFavoriteStatus();
+    
+    // If already favorited, do nothing
+    if (currentFavoriteState) {
+      return;
+    }
+    
+    // Optimistically update UI
+    setFavorited(prev => ({
+      ...prev,
+      [flashcardId]: true
+    }));
+
+    try {
+      const authToken = token || API_CONFIG.FIXED_TOKEN;
+      
+      // Use the correct favorites endpoint to add favorite
+      const response = await fetch(`${API_CONFIG.baseURL}${API_CONFIG.favorites.postFavorite}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          flashcard: currentFlashcard.id
+        }),
+      });
+
+      if (!response.ok) {
+        // Revert on error
+        setFavorited(prev => ({
+          ...prev,
+          [flashcardId]: false
+        }));
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to add favorite' }));
+        Alert.alert('Error', errorData.detail || errorData.error || 'Failed to add favorite');
+      } else {
+        console.log('✅ Flashcard favorited successfully');
+        // Re-fetch favorites to sync with backend
+        if (courseId) {
+          fetchFavorites(courseId, authToken);
+        }
+      }
+    } catch (error: any) {
+      // Revert on error
+      setFavorited(prev => ({
+        ...prev,
+        [flashcardId]: false
+      }));
+      console.error('❌ Error adding favorite:', error);
+      Alert.alert('Error', error.message || 'Failed to add favorite');
+    }
   };
 
 
@@ -291,9 +498,7 @@ export default function FlashcardsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Loading State */}
       {isLoading && (
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color={colors.primary} text="Loading flashcards..." />
-        </View>
+        <PremiumLoader text="Please wait, loading flashcards..." size="large" />
       )}
 
       {/* Content */}
@@ -328,12 +533,6 @@ export default function FlashcardsScreen() {
                         </Text>
                       </View>
                     </View>
-                    <TouchableOpacity 
-                      style={styles.closeButton}
-                      onPress={() => router.push('/course/course-details')}
-                    >
-                      <X size={20} color={colors.foreground} strokeWidth={3} />
-                    </TouchableOpacity>
                   </View>
 
                               {/* Card content with 3D flip */}
@@ -360,11 +559,12 @@ export default function FlashcardsScreen() {
                     <TouchableOpacity 
                       style={styles.favoriteButton}
                       onPress={handleFavorite}
+                      disabled={getCurrentFlashcardFavoriteStatus()}
                     >
                       <Star 
                         size={24} 
-                        color={favorited ? colors.yellow : colors.muted}
-                        fill={favorited ? colors.yellow : 'none'}
+                        color={getCurrentFlashcardFavoriteStatus() ? colors.yellow : colors.muted}
+                        fill={getCurrentFlashcardFavoriteStatus() ? colors.yellow : 'none'}
                       />
                     </TouchableOpacity>
                     
@@ -403,11 +603,12 @@ export default function FlashcardsScreen() {
                     <TouchableOpacity 
                       style={styles.favoriteButton}
                       onPress={handleFavorite}
+                      disabled={getCurrentFlashcardFavoriteStatus()}
                     >
                       <Star 
                         size={24} 
-                        color={favorited ? colors.yellow : colors.muted}
-                        fill={favorited ? colors.yellow : 'none'}
+                        color={getCurrentFlashcardFavoriteStatus() ? colors.yellow : colors.muted}
+                        fill={getCurrentFlashcardFavoriteStatus() ? colors.yellow : 'none'}
                       />
                     </TouchableOpacity>
                     
@@ -427,8 +628,20 @@ export default function FlashcardsScreen() {
 
               {/* Card footer */}
               <View style={styles.cardFooter}>
-                {/* Centered arrow buttons */}
+                {/* Centered navigation buttons with star and shuffle */}
                 <View style={styles.navigationButtons}>
+                  {/* Filled Star Button - Show Only Favorites */}
+                  <TouchableOpacity
+                    style={styles.favoritesFilterButton}
+                    onPress={handleToggleFavorites}
+                  >
+                    <Star 
+                      size={20} 
+                      color={showOnlyFavorites ? colors.yellow : colors.muted}
+                      fill={showOnlyFavorites ? colors.yellow : 'none'}
+                    />
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={[styles.navButton, { borderColor: colors.border }]}
                     onPress={handlePrevious}
@@ -442,16 +655,16 @@ export default function FlashcardsScreen() {
                   >
                     <ArrowRight size={24} color={colors.foreground} strokeWidth={3} />
                   </TouchableOpacity>
-                </View>
 
-                {/* Right-aligned Shuffle */}
-                <TouchableOpacity
-                  style={styles.shuffleButton}
-                  onPress={handleShuffle}
-                  disabled={isChanging}
-                >
-                  <Shuffle size={16} color={colors.foreground} />
-                </TouchableOpacity>
+                  {/* Shuffle button */}
+                  <TouchableOpacity
+                    style={styles.shuffleButton}
+                    onPress={handleShuffle}
+                    disabled={isChanging}
+                  >
+                    <Shuffle size={16} color={colors.foreground} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -597,6 +810,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 20,
     marginBottom: 16,
     width: '100%',
     maxWidth: 500,
@@ -627,21 +841,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
+    paddingTop: 40,
+    marginTop: '15%',
     width: '100%',
     maxWidth: 280,
     alignSelf: 'center',
   },
   flashcard: {
     width: '100%',
-    height: 380,
+    height: 400,
     
     borderRadius: 2,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -689,19 +900,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 6,
     width: '100%',
     position: 'absolute',
-    bottom: 0,
-    left: 0,
+    bottom: 8,
+    left: '5%',
     right: 0,
-    maxWidth: 500,
+    
     alignSelf: 'center',
+  },
+  favoritesFilterButton: {
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
   navigationButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   navButton: {
     width: 64,
@@ -712,11 +930,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shuffleButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    position: 'absolute',
-    right: 16,
+    padding: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   shuffleText: {
     fontSize: 14,
@@ -743,3 +960,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

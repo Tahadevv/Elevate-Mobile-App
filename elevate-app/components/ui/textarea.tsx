@@ -1,5 +1,5 @@
 import * as React from "react";
-import { TextInput, StyleSheet, TextInputProps, ViewStyle } from "react-native";
+import { StyleSheet, TextInput, TextInputProps, ViewStyle } from "react-native";
 import { useColors } from "../theme-provider";
 
 export interface TextareaProps extends TextInputProps {
@@ -19,7 +19,6 @@ const Textarea = React.forwardRef<TextInput, TextareaProps>(
             borderColor: colors.border,
             color: colors.foreground,
             backgroundColor: colors.input,
-            shadowColor: colors.foreground
           }, 
           style
         ]}
@@ -43,10 +42,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 16,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
 });
 

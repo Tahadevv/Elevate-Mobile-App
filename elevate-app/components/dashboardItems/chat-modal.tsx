@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from "react";
 import {
   Dimensions,
@@ -93,6 +94,11 @@ export function ChatbotModal({
         onRequestClose={() => setOpen(false)}
       >
         <View style={styles.modalOverlay}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0, 0, 0, 0.6)' }]} />
+          )}
           <View style={styles.modalContent}>
             {/* Header */}
             <View style={styles.header}>
@@ -377,7 +383,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderRadius: 2,
+    borderRadius: 4,
     width: width * 0.9,
     height: height * 0.8,
     maxWidth: 425,
@@ -473,7 +479,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 8,
+    borderRadius: 4,
     padding: 8,
     fontSize: 16,
     maxHeight: 100,
@@ -481,7 +487,7 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: "#3b82f6",
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -493,7 +499,7 @@ const styles = StyleSheet.create({
   mobileContainer: {
     flex: 1,
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     shadowColor: "#000",
@@ -558,7 +564,7 @@ const styles = StyleSheet.create({
   mobileMessageBubble: {
     maxWidth: "75%",
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 2,
   },
   mobileUserMessageBubble: {
     backgroundColor: "#3b82f6",
@@ -590,7 +596,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: "#d1d5db",
-    borderRadius: 8,
+    borderRadius: 4,
     padding: 8,
     fontSize: 14,
     maxHeight: 80,
@@ -598,7 +604,7 @@ const styles = StyleSheet.create({
   mobileSendButton: {
     backgroundColor: "#8b5cf6",
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: "center",
     justifyContent: "center",
   },

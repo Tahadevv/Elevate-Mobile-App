@@ -283,11 +283,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     padding: 8,
     borderRadius: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   sidebarContainer: {
     position: 'absolute',

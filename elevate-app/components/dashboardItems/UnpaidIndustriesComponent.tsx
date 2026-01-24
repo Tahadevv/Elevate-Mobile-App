@@ -728,7 +728,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     maxWidth: 600,
     height: '85%',
     maxHeight: 700,
-    borderRadius: 12,
+    borderRadius: 4,
     overflow: 'hidden',
     flexDirection: 'column',
   },

@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import { ArrowRight, ChevronLeft, ChevronRight, Code } from 'lucide-react-native';
+import { ArrowRight, Code } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import API_CONFIG, { buildURL, getAuthHeaders } from '../../config.api';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchPaidIndustries } from '../../store/slices/dashboardSlice';
@@ -31,13 +31,10 @@ export default function PaidIndustriesComponent({ industries }: PaidIndustriesCo
   );
   const [visibleSubjectsCount, setVisibleSubjectsCount] = useState(SUBJECTS_PER_LOAD);
   const [visibleLibraryCount, setVisibleLibraryCount] = useState(SUBJECTS_PER_LOAD);
-  const [industryStartIndex, setIndustryStartIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'currently-studying' | 'course-library'>('currently-studying');
   
   const colors = useColors();
   const router = useRouter();
-  const windowWidth = Dimensions.get('window').width;
-  const industriesToShow = windowWidth >= 1024 ? 12 : windowWidth >= 640 ? 6 : 4;
 
   // Update selected industry when industries change
   React.useEffect(() => {
@@ -45,25 +42,6 @@ export default function PaidIndustriesComponent({ industries }: PaidIndustriesCo
       setSelectedIndustry(industries[0]);
     }
   }, [industries]);
-
-  const handleIndustryLeft = () => {
-    if (industryStartIndex > 0) {
-      setIndustryStartIndex(industryStartIndex - 1);
-    }
-  };
-
-  const handleIndustryRight = () => {
-    if (industryStartIndex < industries.length - industriesToShow) {
-      setIndustryStartIndex(industryStartIndex + 1);
-    } else if (industries.length > industriesToShow) {
-      // Allow scrolling to see the last industry even if it means showing fewer items
-      setIndustryStartIndex(Math.min(industryStartIndex + 1, industries.length - 1));
-    }
-  };
-
-  const isIndustryLeftDisabled = industryStartIndex === 0;
-  // Show right button if there are more industries to scroll to
-  const isIndustryRightDisabled = industries.length <= industriesToShow || industryStartIndex >= industries.length - 1;
 
   const currentlyStudyingCourses = selectedIndustry?.currently_studying || [];
   const courseLibraryCourses = selectedIndustry?.course_library || [];
@@ -165,31 +143,21 @@ export default function PaidIndustriesComponent({ industries }: PaidIndustriesCo
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Industry Carousel */}
+      {/* Industry Tabs */}
       <View style={styles.industrySection}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>All Domains</Text>
-        <View style={styles.carouselContainer}>
-          {industryStartIndex > 0 && (
-            <TouchableOpacity
-              style={[styles.carouselButton, { backgroundColor: colors.card }]}
-              onPress={handleIndustryLeft}
-              disabled={isIndustryLeftDisabled}
-            >
-              <ChevronLeft size={20} color={colors.foreground} />
-            </TouchableOpacity>
-          )}
+        <View style={[styles.industryTabsContainer, { borderBottomColor: colors.border }]}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.industryList}
+            contentContainerStyle={styles.industryTabsList}
           >
-            {industries.slice(industryStartIndex, Math.min(industryStartIndex + industriesToShow, industries.length)).map((industry) => (
+            {industries.map((industry) => (
               <TouchableOpacity
                 key={industry.id}
                 style={[
-                  styles.industryChip,
-                  selectedIndustry?.id === industry.id && styles.selectedIndustryChip,
-                  { borderColor: colors.border },
+                  styles.industryTab,
+                  selectedIndustry?.id === industry.id && styles.activeIndustryTab,
                 ]}
                 onPress={() => {
                   setSelectedIndustry(industry);
@@ -199,24 +167,20 @@ export default function PaidIndustriesComponent({ industries }: PaidIndustriesCo
               >
                 <Text
                   style={[
-                    styles.industryChipText,
-                    { color: colors.foreground },
-                    selectedIndustry?.id === industry.id && styles.selectedIndustryChipText,
+                    styles.industryTabText,
+                    { color: colors.mutedForeground },
+                    selectedIndustry?.id === industry.id && styles.activeIndustryTabText,
+                    selectedIndustry?.id === industry.id && { color: colors.foreground, fontWeight: 'bold' },
                   ]}
                 >
                   {industry.name}
                 </Text>
+                {selectedIndustry?.id === industry.id && (
+                  <View style={[styles.industryTabUnderline, { backgroundColor: colors.yellow || '#ffd404' }]} />
+                )}
               </TouchableOpacity>
             ))}
           </ScrollView>
-          {!isIndustryRightDisabled && (
-            <TouchableOpacity
-              style={[styles.carouselButton, { backgroundColor: colors.card }]}
-              onPress={handleIndustryRight}
-            >
-              <ChevronRight size={20} color={colors.foreground} />
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -356,37 +320,36 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  carouselContainer: {
+  industryTabsContainer: {
+    borderBottomWidth: 1,
+    marginBottom: 0,
+  },
+  industryTabsList: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingVertical: 0,
   },
-  carouselButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  industryList: {
-    flexDirection: 'row',
-    gap: 8,
-    flex: 1,
-  },
-  industryChip: {
+  industryTab: {
+    position: 'relative',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    marginRight: 8,
+    paddingVertical: 12,
+    marginRight: 32,
   },
-  selectedIndustryChip: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.yellow || '#ffd404',
+  activeIndustryTab: {
+    // Active tab styling handled by underline
   },
-  industryChipText: {
+  industryTabText: {
     fontSize: 14,
     fontWeight: '500',
   },
-  selectedIndustryChipText: {
-    fontWeight: 'bold',
+  activeIndustryTabText: {
+    fontWeight: '600',
+  },
+  industryTabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
   },
   title: {
     fontSize: 20,

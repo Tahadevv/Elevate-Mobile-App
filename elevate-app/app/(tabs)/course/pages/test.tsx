@@ -5,10 +5,9 @@ import {
   Flag,
   FlagOff,
   SkipForward,
-  X,
-  CheckCircle2,
+  X
 } from 'lucide-react-native';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -18,11 +17,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SupportModalProvider, useSupportModal } from '../../../../components/dashboardItems/support-modal';
 import { useColors } from '../../../../components/theme-provider';
+import { PremiumLoader } from '../../../../components/ui/premium-loader';
 import API_CONFIG from '../../../../config.api';
 import { useAppSelector } from '../../../../store/hooks';
-import { useSupportModal, SupportModalProvider } from '../../../../components/dashboardItems/support-modal';
-import { DotLoader } from '../../../../components/ui/dot-loader';
 
 // API Response interfaces
 export interface ApiQuestion {
@@ -312,9 +311,12 @@ function TestScreenContent() {
     setShowStartModal(false);
   };
 
-  // Handle cancel - redirect to course page
+  // Handle cancel - close modal and redirect to course page
   const handleCancel = () => {
+    setShowStartModal(false);
+    setTimeout(() => {
     router.push('/course/course-details');
+    }, 100);
   };
 
   // Current question data
@@ -515,6 +517,15 @@ function TestScreenContent() {
     setShowSubmitModal(false);
   };
 
+  // Show loading state first
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <PremiumLoader text="Please wait, generating Quiz..." size="large" />
+      </View>
+    );
+  }
+
   // Show error state
   if (error) {
     return (
@@ -538,6 +549,7 @@ function TestScreenContent() {
     );
   }
 
+  // Show no questions message only after loading is complete
   if (!currentQuestion) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -545,16 +557,6 @@ function TestScreenContent() {
           <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
             No questions available
           </Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (loading) {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <DotLoader size="large" color={colors.primary} text="Loading questions..." />
         </View>
       </View>
     );
@@ -941,7 +943,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalContent: {
-    borderRadius: 12,
+    borderRadius: 4,
     padding: 24,
     width: '100%',
     maxWidth: 400,
@@ -967,7 +969,7 @@ const styles = StyleSheet.create({
   modalButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 4,
     minWidth: 100,
     alignItems: 'center',
   },

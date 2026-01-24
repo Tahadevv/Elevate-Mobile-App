@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useGlobalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CourseSidebar from '../../../components/CourseSidebar';
 import Topbar from '../../../components/dashboardItems/topbar';
 import { useColors } from '../../../components/theme-provider';
@@ -12,6 +13,7 @@ const { width } = Dimensions.get('window');
 export default function CourseLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('course-details');
   const colors = useColors();
   const router = useRouter();
@@ -86,23 +88,52 @@ export default function CourseLayout() {
         break;
       case 'analytics':
         router.push({
-          pathname: '/course/result/stats',
+          pathname: '/course/pages/quiz-analytics',
           params,
         } as any);
         break;
     }
   };
 
+  const styles = createStyles(colors, sidebarOpen, isMobile);
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['left', 'right']}>
       {/* Topbar */}
       <Topbar sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
       
-      {/* Sidebar */}
-      <CourseSidebar onNavigate={handleNavigate} courseId={courseId} isOpen={sidebarOpen} onToggle={setSidebarOpen} />
+      {/* Overlay - Click outside to close sidebar */}
+      {isMobile && sidebarOpen && (
+        <TouchableOpacity
+          style={styles.overlay}
+          onPress={() => setSidebarOpen(false)}
+          activeOpacity={1}
+        />
+      )}
+
+      {/* Sidebar - Positioned outside mainContent to start from top */}
+      {isMobile && (
+        <View 
+          style={styles.sidebarContainer}
+          pointerEvents={sidebarOpen ? 'auto' : 'none'}
+        >
+          <CourseSidebar onNavigate={handleNavigate} courseId={courseId} isOpen={sidebarOpen} onToggle={setSidebarOpen} />
+        </View>
+      )}
       
-      {/* Main Content */}
-      <View style={styles.mainContent}>
+      <View style={styles.mainContainer}>
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <View 
+            style={styles.sidebarContainer}
+            pointerEvents="auto"
+          >
+            <CourseSidebar onNavigate={handleNavigate} courseId={courseId} isOpen={true} onToggle={setSidebarOpen} />
+          </View>
+        )}
+      
+        {/* Main Content */}
+        <View style={styles.mainContent}>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -125,14 +156,16 @@ export default function CourseLayout() {
           <Stack.Screen name="pages/exam" />
           <Stack.Screen name="pages/test" />
           <Stack.Screen name="pages/test-analytics" />
+          <Stack.Screen name="pages/quiz-analytics" />
           <Stack.Screen name="pages/build-your-own" />
           <Stack.Screen name="pages/assessment-result" />
         </Stack>
       </View>
+      </View>
 
       {/* Custom Course Bottom Navigation Bar */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-        <View style={[styles.bottomBarContent, { paddingBottom: isMobile ? 20 : 0 }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border, paddingBottom: insets.bottom }]}>
+        <View style={styles.bottomBarContent}>
         {[
           { key: 'course-details', name: 'Course', icon: 'book' },
           { key: 'notes', name: 'Notes', icon: 'create' },
@@ -177,13 +210,41 @@ export default function CourseLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, sidebarOpen: boolean, isMobile: boolean) => StyleSheet.create({
   container: {
     flex: 1,
   },
+  mainContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'transparent',
+    zIndex: 998,
+  },
+  sidebarContainer: {
+    ...(isMobile ? {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 300,
+      zIndex: sidebarOpen ? 1000 : -1,
+      elevation: sidebarOpen ? 5 : 0,
+      overflow: 'hidden',
+    } : {
+      width: 300,
+    }),
+  },
   mainContent: {
     flex: 1,
-    // marginLeft will be set dynamically based on sidebar state
   },
   bottomBar: {
     flexDirection: "row",
@@ -192,11 +253,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
   },
   bottomBarContent: {
     flexDirection: "row",
